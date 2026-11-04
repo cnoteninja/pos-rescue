@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>POS Rescue — Get the lane back open</title>
+<style>
+  :root{--navy:#16233a;--ink:#1c2433;--muted:#5b6675;--line:#dfe4ea;--bg:#f4f6f8;--card:#ffffff;--green:#1e7d32;--amber:#8a6d00;--red:#b3261e;--accent:#0b6fa4}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--ink);line-height:1.5}
+  header{background:var(--navy);color:#fff;padding:22px 18px 18px}
+  header h1{margin:0;font-size:1.7rem;letter-spacing:.01em}
+  header p{margin:4px 0 0;opacity:.88;font-size:1rem}
+  .wrap{max-width:560px;margin:0 auto;padding:0 14px 40px}
+  .safety{background:#fff8e1;border:1px solid #eed48a;border-radius:12px;padding:12px 14px;margin:16px 0 4px;font-size:.92rem}
+  .safety b{color:#6d4c00}
+  .group-h{font-size:.78rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:24px 2px 8px;font-weight:700}
+  .symp{display:block;width:100%;text-align:left;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:10px;cursor:pointer;min-height:64px;font-family:inherit}
+  .symp:active{transform:scale(.99)}
+  .symp .t{font-weight:700;font-size:1.06rem;color:var(--ink)}
+  .symp .d{color:var(--muted);font-size:.92rem;margin-top:2px}
+  .back{background:none;border:none;color:var(--accent);font-size:1rem;font-weight:700;cursor:pointer;padding:14px 0 0}
+  .stepcard{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px 18px;margin-top:14px}
+  .stepnum{font-size:.78rem;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;font-weight:700}
+  .steptitle{font-size:1.25rem;font-weight:800;margin:6px 0 4px}
+  .steptext{font-size:1.13rem;margin:10px 0 18px}
+  .steptext .warn{display:block;margin-top:12px;padding:10px 12px;background:#fff3e0;border-left:4px solid #e6a700;border-radius:6px;font-size:1rem}
+  .btnrow{display:flex;gap:10px}
+  .btn{flex:1;min-height:56px;border-radius:12px;border:none;font-size:1.05rem;font-weight:700;cursor:pointer;font-family:inherit;padding:12px 10px}
+  .btn:active{transform:scale(.98)}
+  .btn.yes{background:var(--green);color:#fff}
+  .btn.no{background:#fff;border:1px solid var(--line);color:var(--ink)}
+  .btn.primary{background:var(--accent);color:#fff;display:block;width:100%;text-align:center;text-decoration:none;line-height:32px}
+  .btn.ghost{background:#fff;border:1px solid var(--line);color:var(--ink);display:block;width:100%;text-align:center;text-decoration:none;line-height:32px}
+  .btn.single{width:100%}
+  .resultcard{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:22px 18px;margin-top:16px}
+  .resultcard.fixed{border-color:#9ccc9f;background:#f0f7f0}
+  .resultcard.escalate{border-color:#e0a3a0;background:#fdf3f2}
+  .resultcard h2{margin:0 0 8px;font-size:1.35rem}
+  .resultcard p{margin:10px 0;font-size:1.05rem}
+  .resultcard .big{font-size:1.2rem;font-weight:700}
+  footer{color:var(--muted);font-size:.85rem;text-align:center;margin-top:30px;line-height:1.6}
+  [hidden]{display:none !important}
+</style>
+</head>
+<body>
+<header>
+  <h1>POS Rescue</h1>
+  <p>Get the lane back open.</p>
+</header>
+<div class="wrap">
+
+  <div id="view-home">
+    <div class="safety"><b>Safety first.</b> Never open a card reader or payment terminal. Never write down or share card details. Never share the register&rsquo;s admin password &mdash; the owner types their own. Some problems need your POS vendor, not a workaround &mdash; this guide will tell you when to stop and call them.</div>
+    <div id="homeGroups"></div>
+    <footer>POS Rescue &mdash; a guide for store clerks.<br>Works with Square, Toast, Aloha, Clover, NCR and most countertop systems.<br>Cleveland, Ohio</footer>
+  </div>
+
+  <div id="view-flow" hidden>
+    <button class="back" id="backBtn">&larr; All fixes</button>
+    <div class="stepcard">
+      <div class="stepnum" id="stepNum"></div>
+      <div class="steptitle" id="flowTitle"></div>
+      <p class="steptext" id="stepText"></p>
+      <div class="btnrow" id="stepBtns"></div>
+    </div>
+  </div>
+
+  <div id="view-fixed" hidden>
+    <div class="resultcard fixed">
+      <h2>&#9989; Fixed &mdash; the lane is back open.</h2>
+      <p class="big">Nice work.</p>
+      <p>If something else goes wrong, start over from the home screen.</p>
+      <p><button class="btn primary single" id="fixedBackBtn">Back to all fixes</button></p>
+    </div>
+  </div>
+
+  <div id="view-escalate" hidden>
+    <div class="resultcard escalate">
+      <h2>Still down? Get rescue help.</h2>
+      <div id="escalateBody"></div>
+      <p><button class="btn ghost single" id="escBackBtn">Back to all fixes</button></p>
+    </div>
+  </div>
+
+</div>
+<script>
+/* POS Rescue — single-file guide app. No backend, no external dependencies.
+   CONFIG: set rescuePhone to your Google Voice / business number before
+   sharing the link with stores. Leave it empty until the service launches —
+   the escalation card then says so instead of showing a dead link. */
+var CONFIG = { rescuePhone: "" };
+
+var GROUP_ORDER = ["Register", "Printer", "Payments", "Network", "End of day"];
+
+var FLOWS = [
+{ id:"boot", group:"Register", icon:"\uD83D\uDDA5\uFE0F", title:"Register won't boot / screen frozen",
+  blurb:"No lights, black screen, or stuck on one screen.",
+  steps:[
+    { kind:"fix", text:"Look for a power light on the terminal. If there is no light at all, push the power cable in firmly at the back of the terminal and where it plugs into the wall or power strip. Wait 10 seconds and look for the light." },
+    { kind:"fix", text:"Hold the power button down for a full 10 seconds until the screen goes dark. Wait 10 more seconds, then press the power button once. Give the register up to 2 minutes to load — don't tap the screen while it loads." },
+    { kind:"fix", text:"Test the outlet. Plug a phone charger into the same outlet. If the charger doesn't work, the outlet has no power — move the terminal's plug to a different outlet you know works." },
+    { kind:"stop", text:"If the screen shows an error message, write down the exact words on the screen, then stop here. An error on boot usually needs your POS vendor — don't guess at settings to clear it." }
+  ]},
+{ id:"frozen", group:"Register", icon:"\u2744\uFE0F", title:"Software frozen mid-transaction",
+  blurb:"Screen stuck during a sale.",
+  steps:[
+    { kind:"fix", text:"Wait 30 seconds and don't tap anything. A frozen screen sometimes finishes on its own." },
+    { kind:"fix", text:"Restart the register. Hold the power button down for 10 seconds until it goes dark, wait 10 seconds, then press it once. Give it up to 2 minutes to load." },
+    { kind:"fix", text:"When it comes back, check the sale before ringing it again. Look at the last transaction or order list. If the sale went through, don't ring it twice — if you're not sure, ask the customer to check their bank app, or reprint the last receipt." },
+    { kind:"stop", text:"If it freezes again on the same screen or the same item, write down exactly what you tapped when it froze. That's a software fault — it needs your POS vendor, not another restart." }
+  ]},
+{ id:"drawer", group:"Register", icon:"\uD83D\uDCB5", title:"Cash drawer won't open",
+  blurb:"Drawer stays shut after a sale.",
+  steps:[
+    { kind:"fix", text:"Check the drawer cable — the drawer usually opens through the receipt printer. Push the cable in firmly at the drawer and at the printer." },
+    { kind:"fix", text:"Open it with the key. Every drawer has a manual key — it's usually kept in the safe or the office. Turn the key and the drawer pops open. Count the cash as normal and keep trading." },
+    { kind:"fix", text:"Check the printer is on. A drawer that fires through the printer won't open if the printer is off or unplugged. Turn the printer on and try a sale." },
+    { kind:"stop", text:"If the drawer is locked, the key is missing, and the printer is on, stop. Don't force the drawer open — you'll break the lock and the drawer." }
+  ]},
+{ id:"scanner", group:"Register", icon:"\uD83D\uDCE6", title:"Barcode scanner not scanning",
+  blurb:"No beep, no read, or nothing appears on screen.",
+  steps:[
+    { kind:"fix", text:"Check the scanner has power. Look for its light or listen for a beep when you pull the trigger. If there's nothing, push the cable in firmly at both ends — or, on a wireless scanner, put it on its charger for a few minutes." },
+    { kind:"fix", text:"Try a clean barcode. Scan an item with a crisp, undamaged label. If that one reads, the first item's barcode was damaged — type the numbers under the barcode in by hand." },
+    { kind:"fix", text:"Wipe the scanner window with a dry, soft cloth. Dust and smudges block the beam." },
+    { kind:"fix", text:"Unplug the scanner's USB cable, wait 10 seconds, and plug it back in. Wait a few seconds for the register to recognise it, then try scanning again." }
+  ]},
+{ id:"printer", group:"Printer", icon:"\uD83D\uDDA8\uFE0F", title:"Receipt printer won't print / jammed",
+  blurb:"Nothing prints, or paper is stuck.",
+  steps:[
+    { kind:"fix", text:"Open the printer cover and look at the paper roll. If it's empty or nearly empty, put in a new roll so the paper feeds from the bottom of the roll, shiny side up. Close the cover firmly until it clicks." },
+    { kind:"fix", text:"Check the printer is on and plugged in — look for its power light, and push the cable in firmly at the printer and at the register or wall." },
+    { kind:"fix", text:"Clear the jam. Open the cover, lift the roll out, and gently pull out any torn paper. Don't yank it. Put the roll back, close the cover, then reprint the last receipt from the register." },
+    { kind:"stop", text:"If the printer grinds, clicks, or jams again right away, stop — don't force the cover or pull harder. It needs hands-on help." }
+  ]},
+{ id:"reader", group:"Payments", icon:"\uD83D\uDCB3", title:"Card reader offline / chip & tap not working",
+  blurb:"Reader shows offline, or won't take cards.",
+  steps:[
+    { kind:"fix", text:"Look at the reader's screen. If it says offline or shows no signal, move the reader closer to the register or router and wait 30 seconds for it to reconnect." },
+    { kind:"fix", text:"Restart the reader. Hold its power button until it turns off, wait 10 seconds, then turn it back on. Give it up to a minute to reconnect." },
+    { kind:"fix", text:"Try a different card and a different method — chip instead of tap, or tap instead of chip. If one card fails and another works, it's that customer's card, not your reader. Ask them to try another card or another way to pay." },
+    { kind:"stop", text:"If the reader still won't take any card on any method, stop. Don't put anything into the chip slot and don't try to take the reader apart. It needs hands-on help." }
+  ]},
+{ id:"emv", group:"Payments", icon:"\uD83D\uDCB3", title:"Chip declines / card won't go through",
+  blurb:"Cards keep declining and it's not the customer.",
+  steps:[
+    { kind:"fix", text:"Try the chip again — push the card in firmly and leave it in until the reader tells you to remove it. Pulling it out early is the most common reason a chip fails." },
+    { kind:"fix", text:"Try tap, then swipe. If tap works but chip doesn't, keep trading on tap and note that the chip slot is acting up. If swipe works but chip and tap don't, keep trading on swipe." },
+    { kind:"fix", text:"Try a different card. If the second card works, the problem is the first customer's card — a bank block, an expired card, or a damaged chip. Politely ask for another way to pay." },
+    { kind:"stop", text:"If every card fails on every method, the reader or the payment connection is down — run the card reader flow. If that doesn't fix it, stop here. Never copy a customer's card details onto paper or take them by hand." }
+  ]},
+{ id:"network", group:"Network", icon:"\uD83D\uDCF6", title:"POS offline / no network",
+  blurb:"Register says offline or no internet.",
+  steps:[
+    { kind:"fix", text:"Read what the screen says. If it says offline mode, the register can usually still take cash and keep recording sales — keep trading and keep going with these steps." },
+    { kind:"fix", text:"Check the connection. If the register uses a network cable, push it in firmly at the register and at the wall jack until it clicks. If it uses Wi-Fi, check the register is on the store's own network name — not a guest network or a neighbour's." },
+    { kind:"fix", text:"Restart the router. Unplug the router — the box with the blinking lights — wait a full 30 seconds, plug it back in, and wait 2 minutes for the lights to go steady. Then check the register." },
+    { kind:"fix", text:"Check if anything else in the store is online — a phone on the store Wi-Fi, or another register. If nothing is online, the internet itself is down: call your internet provider and tell them the whole store is offline. If other devices are online and only this register is down, it needs hands-on help." }
+  ]},
+{ id:"batch", group:"End of day", icon:"\uD83C\uDF19", title:"End-of-day batch won't settle",
+  blurb:"Batch stuck, won't close out.",
+  steps:[
+    { kind:"fix", text:"Check the internet first. Settling the batch needs a connection. If the register shows offline, run the Network flow, then try settling again." },
+    { kind:"fix", text:"Read the message on the batch screen and check the time. Some systems won't settle before a cutoff or after midnight. If it says to try again later, wait 15 minutes and try once more." },
+    { kind:"fix", text:"Look for one stuck sale. The batch screen usually names a failed or pending transaction. Write down its amount and time, then try settling again. Don't delete or void it just to force the batch through." },
+    { kind:"stop", text:"If it still won't settle, write down the batch total and the exact error message, and leave the register on. Don't turn it off overnight with a batch unsettled — it needs help." }
+  ]},
+{ id:"basics", group:"End of day", icon:"\uD83D\uDCDD", title:"New-clerk basics: voids, refunds, reprints, shift close",
+  blurb:"The everyday jobs, step by step.",
+  steps:[
+    { kind:"info", text:"Void a sale before it's paid: find the sale on the screen, choose Void, and confirm. If the customer already paid, you need a refund instead — that's the next step." },
+    { kind:"info", text:"Refund a paid sale: find the sale in history, choose Refund, and follow the prompts. The money goes back to the same card. Never hand cash back for a card sale unless the owner tells you to." },
+    { kind:"info", text:"Reprint a receipt: find the sale in history and choose Reprint. If the printer is empty, load paper first — see the printer flow." },
+    { kind:"info", text:"Close your shift: count the cash drawer, enter the count when the register asks, and print the shift report. If your count doesn't match, count again once. If it still doesn't match, write down both numbers and tell the owner — don't change the numbers to make them match." }
+  ]}
+];
+
+/* Pure step engine — testable without a DOM.
+   Returns {view:"step", step:n} | {view:"fixed"} | {view:"escalate"}.
+   answer: "yes" | "no" for fix steps, "got" for info/stop steps. */
+function nextState(flow, stepIdx, answer){
+  var step = flow.steps[stepIdx];
+  if (step.kind === "stop") return { view:"escalate" };
+  if (step.kind === "info"){
+    if (stepIdx + 1 >= flow.steps.length) return { view:"fixed" };
+    return { view:"step", step: stepIdx + 1 };
+  }
+  if (answer === "yes") return { view:"fixed" };
+  if (stepIdx + 1 >= flow.steps.length) return { view:"escalate" };
+  return { view:"step", step: stepIdx + 1 };
+}
+
+function el(id){ return document.getElementById(id); }
+function show(id){
+  ["view-home","view-flow","view-fixed","view-escalate"].forEach(function(v){ el(v).hidden = (v !== id); });
+  window.scrollTo(0, 0);
+}
+
+var currentFlow = null, currentStep = 0;
+
+function renderHome(){
+  var html = "";
+  GROUP_ORDER.forEach(function(g){
+    var flows = FLOWS.filter(function(f){ return f.group === g; });
+    if (!flows.length) return;
+    html += '<div class="group-h">' + g + '</div>';
+    flows.forEach(function(f){
+      html += '<button class="symp" data-flow="' + f.id + '"><div class="t">' + f.icon + ' ' + f.title + '</div><div class="d">' + f.blurb + '</div></button>';
+    });
+  });
+  el("homeGroups").innerHTML = html;
+  var btns = document.querySelectorAll(".symp");
+  for (var i = 0; i < btns.length; i++){
+    btns[i].onclick = function(){ openFlow(this.getAttribute("data-flow")); };
+  }
+}
+
+function openFlow(id){
+  for (var i = 0; i < FLOWS.length; i++){ if (FLOWS[i].id === id){ currentFlow = FLOWS[i]; break; } }
+  currentStep = 0;
+  renderStep();
+  show("view-flow");
+}
+
+function renderStep(){
+  var step = currentFlow.steps[currentStep];
+  el("stepNum").textContent = "Step " + (currentStep + 1) + " of " + currentFlow.steps.length;
+  el("flowTitle").textContent = currentFlow.title;
+  el("stepText").textContent = step.text;
+  var row = el("stepBtns");
+  row.innerHTML = "";
+  if (step.kind === "fix"){
+    var yes = document.createElement("button");
+    yes.className = "btn yes"; yes.textContent = "Yes — fixed";
+    yes.onclick = function(){ show("view-fixed"); };
+    var no = document.createElement("button");
+    no.className = "btn no"; no.textContent = "No — still broken";
+    no.onclick = function(){
+      var next = nextState(currentFlow, currentStep, "no");
+      if (next.view === "escalate"){ renderEscalate(); show("view-escalate"); }
+      else { currentStep = next.step; renderStep(); }
+    };
+    row.appendChild(yes); row.appendChild(no);
+  } else {
+    var got = document.createElement("button");
+    got.className = "btn primary single";
+    got.textContent = (step.kind === "stop") ? "Understood" : "Got it — next";
+    got.onclick = function(){
+      var next = nextState(currentFlow, currentStep, "got");
+      if (next.view === "escalate"){ renderEscalate(); show("view-escalate"); }
+      else if (next.view === "fixed"){ show("view-fixed"); }
+      else { currentStep = next.step; renderStep(); }
+    };
+    row.appendChild(got);
+  }
+}
+
+function renderEscalate(){
+  var html = "<p>Before you call anyone, write down: the exact words on the screen, what time it happened, and which register it is.</p>";
+  if (CONFIG.rescuePhone){
+    html += '<p><a class="btn primary" href="tel:' + CONFIG.rescuePhone + '">Call the rescue line</a></p>' +
+      '<p><a class="btn ghost" href="sms:' + CONFIG.rescuePhone + '">Text the rescue line</a></p>';
+  } else {
+    html += "<p>The rescue line number is set when the service launches. Leave a callback note for the owner with the register, the time, and the exact error message.</p>";
+  }
+  html += "<p>If your POS vendor's support line is open, call them too and read them the exact error message — they can often fix it remotely.</p>";
+  el("escalateBody").innerHTML = html;
+}
+
+el("backBtn").onclick = function(){ show("view-home"); };
+el("fixedBackBtn").onclick = function(){ show("view-home"); };
+el("escBackBtn").onclick = function(){ show("view-home"); };
+
+renderHome();
+if (typeof window !== "undefined"){ window.POSRESCUE = { FLOWS: FLOWS, CONFIG: CONFIG, nextState: nextState, GROUP_ORDER: GROUP_ORDER }; }
+</script>
+</body>
+</html>
