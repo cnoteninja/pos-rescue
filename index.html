@@ -52,6 +52,18 @@
   .check{display:block;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:10px;font-size:1.05rem;cursor:pointer}
   .check input{width:22px;height:22px;accent-color:var(--green);vertical-align:-4px;margin-right:8px}
   .checkcount{color:var(--muted);font-size:.95rem}
+  .searchbox{width:100%;font-size:1.1rem;padding:14px;border:1px solid var(--line);border-radius:12px;margin:16px 0 4px;font-family:inherit}
+  .searchhint{color:var(--muted);font-size:.9rem;margin:6px 2px 0}
+  .outage{background:#eef6fb;border:1px solid #b8d9ea;border-radius:12px;padding:12px 14px;margin:16px 0 4px;font-size:.95rem}
+  .outage .ok{color:var(--green);font-weight:700}
+  .outage .down{color:var(--red);font-weight:700}
+  .dashnum{font-size:1.6rem;font-weight:800}
+  .dashrow{display:flex;gap:12px;margin:12px 0}
+  .dashrow div{flex:1}
+  .dashrow .l{font-size:.85rem;color:var(--muted)}
+  .ticket{border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:8px;font-size:.95rem}
+  .ticket .tid{font-weight:700}
+  .ticket button{margin-top:6px}
   footer{color:var(--muted);font-size:.85rem;text-align:center;margin-top:30px;line-height:1.6}
   [hidden]{display:none !important}
 </style>
@@ -108,6 +120,16 @@
     </div>
   </div>
 
+  <div id="view-dash" hidden>
+    <button class="back" id="dashBackBtn">&larr; All fixes</button>
+    <div class="stepcard">
+      <div class="stepnum" id="dashKicker">For owners</div>
+      <div class="steptitle" id="dashTitle">This month at a glance</div>
+      <p class="steptext" id="dashIntro"></p>
+      <div id="dashBody"></div>
+    </div>
+  </div>
+
 </div>
 <script>
 /* POS Rescue — single-file guide app. No backend, no external dependencies.
@@ -130,7 +152,7 @@ en: {
   installTitle: "Save this guide on your phone",
   installText: "iPhone: tap Share, then Add to Home Screen. Android: tap the menu, then Add to Home screen. Once it\u2019s saved, it works even when the internet is down \u2014 it\u2019s one self-contained file.",
   ownerTitle: "For owners",
-  ownerText: "Paying customers get a monthly \u201cwhat broke, what we fixed\u201d summary built from rescue-line calls.",
+  ownerText: "Paying customers get a monthly \u201cwhat broke, what we fixed\u201d summary built from this guide's own log of fixes.",
   checklistBtn: "Weekly prevention checklist",
   checklistTitle: "Weekly prevention checklist",
   checklistKicker: "Once a week",
@@ -154,6 +176,36 @@ en: {
   escFallback: "The rescue line number is set when the service launches. Leave a callback note for the owner with the register, the time, and the exact error message.",
   escVendor: "If your POS vendor\u2019s support line is open, call them too and read them the exact error message \u2014 they can often fix it remotely.",
   escPromise: "We answer within 15 minutes during posted evening and weekend hours.",
+  searchPlaceholder: "Describe what's wrong — try 'printer blinking red'",
+  searchHint: "Type what's wrong in your own words and we'll point at the fix.",
+  searchNoMatch: "No close match — tap a fix below, or get rescue help.",
+  searchResults: "Closest matches:",
+  outageTitle: "Is your system down?",
+  outageCheck: "Check live status",
+  outageChecking: "Checking…",
+  outageOk: "All systems working — the problem is in this store, not with your vendor.",
+  outageDown: "Your vendor is having problems right now — it's not your register. Keep taking cash, and check again in 15 minutes.",
+  outageFail: "Couldn't check just now — tap through to the status page.",
+  outageOpen: "Open the status page",
+  outageNote: "Live check works for Square. For Toast, Clover and Aloha, tap through to their status page.",
+  dashBtn: "Owner dashboard — what keeps breaking",
+  dashBlurb: "See what broke this month and what keeps coming back.",
+  dashKicker: "For owners",
+  dashTitle: "This month at a glance",
+  dashEmpty: "Nothing logged yet. When a fix works — or doesn't — this page remembers it, so patterns show up instead of surprises.",
+  dashProblems: "problems",
+  dashFixed: "fixed on the spot",
+  dashHelp: "needed rescue help",
+  dashTickets: "open tickets",
+  dashTop: "Most common problem:",
+  dashTimes: "times",
+  dashRecent: "Recent problems:",
+  dashMarkFixed: "Mark fixed",
+  dashNoTickets: "No open tickets.",
+  dashNoRecent: "Nothing this month.",
+  ticketBtn: "Open a rescue ticket by text",
+  ticketText: "This texts the rescue line with a ticket number, the problem, and the time — so it's in the queue even if no one picks up right away.",
+  ticketSent: "Ticket sent — we'll reply within 15 minutes during evening and weekend hours.",
   langBtn: "Espa\u00f1ol"
 },
 es: {
@@ -168,7 +220,7 @@ es: {
   installTitle: "Guarda esta gu\u00eda en tu tel\u00e9fono",
   installText: "iPhone: toca Compartir y luego A\u00f1adir a pantalla de inicio. Android: toca el men\u00fa y luego A\u00f1adir a pantalla de inicio. Una vez guardada, funciona aunque no haya internet \u2014 es un solo archivo.",
   ownerTitle: "Para los due\u00f1os",
-  ownerText: "Los clientes que pagan reciben cada mes un resumen de \u201cqu\u00e9 se rompi\u00f3 y qu\u00e9 arreglamos\u201d, hecho con las llamadas a la l\u00ednea de rescate.",
+  ownerText: "Los clientes que pagan reciben cada mes un resumen de \u201cqu\u00e9 se rompi\u00f3 y qu\u00e9 arreglamos\u201d, hecho con el registro de soluciones de esta gu\u00eda.",
   checklistBtn: "Lista semanal de prevenci\u00f3n",
   checklistTitle: "Lista semanal de prevenci\u00f3n",
   checklistKicker: "Una vez por semana",
@@ -192,6 +244,36 @@ es: {
   escFallback: "El n\u00famero de la l\u00ednea de rescate se establece cuando se lanza el servicio. Deja una nota para el due\u00f1o con la caja, la hora y el mensaje de error exacto.",
   escVendor: "Si la l\u00ednea de soporte de tu proveedor de POS est\u00e1 abierta, ll\u00e1malos tambi\u00e9n y l\u00e9eles el mensaje de error exacto \u2014 muchas veces pueden arreglarlo a distancia.",
   escPromise: "Respondemos en menos de 15 minutos durante las horas publicadas de la tarde y el fin de semana.",
+  searchPlaceholder: "Describe qué está mal — prueba 'impresora parpadeando en rojo'",
+  searchHint: "Escribe qué está mal con tus propias palabras y te señalaremos la solución.",
+  searchNoMatch: "No hay una coincidencia cercana — toca una solución abajo o pide ayuda de rescate.",
+  searchResults: "Coincidencias más cercanas:",
+  outageTitle: "¿Tu sistema está caído?",
+  outageCheck: "Revisar el estado en vivo",
+  outageChecking: "Revisando…",
+  outageOk: "Todos los sistemas funcionan — el problema está en esta tienda, no con tu proveedor.",
+  outageDown: "Tu proveedor está teniendo problemas ahora mismo — no es tu caja. Sigue cobrando en efectivo y revisa de nuevo en 15 minutos.",
+  outageFail: "No se pudo revisar ahora — toca para ir a la página de estado.",
+  outageOpen: "Abrir la página de estado",
+  outageNote: "La revisión en vivo funciona con Square. Para Toast, Clover y Aloha, toca para ir a su página de estado.",
+  dashBtn: "Panel del dueño — qué sigue fallando",
+  dashBlurb: "Mira qué se rompió este mes y qué vuelve a fallar.",
+  dashKicker: "Para los dueños",
+  dashTitle: "Este mes de un vistazo",
+  dashEmpty: "Aún no hay nada registrado. Cuando una solución funcione — o no — esta página lo recordará, para que los patrones aparezcan en vez de las sorpresas.",
+  dashProblems: "problemas",
+  dashFixed: "arreglados en el momento",
+  dashHelp: "necesitaron ayuda de rescate",
+  dashTickets: "boletos abiertos",
+  dashTop: "Problema más común:",
+  dashTimes: "veces",
+  dashRecent: "Problemas recientes:",
+  dashMarkFixed: "Marcar arreglado",
+  dashNoTickets: "No hay boletos abiertos.",
+  dashNoRecent: "Nada este mes.",
+  ticketBtn: "Abrir un boleto de rescate por mensaje",
+  ticketText: "Esto envía un mensaje a la línea de rescate con un número de boleto, el problema y la hora — para que quede en la cola aunque nadie conteste de inmediato.",
+  ticketSent: "Boleto enviado — respondemos en menos de 15 minutos durante las horas de la tarde y el fin de semana.",
   langBtn: "English"
 }
 };
@@ -522,6 +604,39 @@ var FLOWS = [
   ]}
 ];
 
+/* Extra search words per flow (synonyms, both languages) so the symptom
+   checker matches plain words like "blinking" or "caj\u00f3n" that may not
+   appear in the title or blurb. */
+var FLOW_KEYS = {
+  boot: ["power","lights","dead","outlet","plug","turn","corriente","luz","enchufe","encender","apagada"],
+  frozen: ["stuck","freeze","hang","loading","spinner","atascada","colgada","cargando"],
+  drawer: ["cash","money","key","shut","close","dinero","efectivo","llave","cerrar"],
+  scanner: ["barcode","scan","beep","code","leer","codigo","barras","sonido"],
+  printer: ["receipt","paper","roll","jam","print","recibo","papel","rollo","atasco","imprimir"],
+  reader: ["offline","signal","chip","tap","swipe","insert","senal","contacto","banda","insertar"],
+  emv: ["decline","declined","bank","expired","reject","rechaza","rechazada","banco","vencida"],
+  network: ["internet","wifi","router","connection","offline","cable","red","conexion","enrutador"],
+  batch: ["settle","settlement","cutoff","midnight","liquidar","liquidacion","cierre","medianoche"],
+  basics: ["void","refund","reprint","receipt","shift","anular","reembolso","reimprimir","turno","nuevo"],
+  kds: ["kitchen","display","tickets","orders","screen","cocina","pantalla","pedidos","comandas"],
+  online: ["delivery","doordash","ubereats","grubhub","tablet","orders","entrega","tableta","pedidos","linea"],
+  drawerjam: ["stuck","halfway","jam","rails","latch","close","atascado","mitad","rieles","pestillo","cerrar"],
+  pairing: ["bluetooth","pair","wireless","connect","drop","emparejar","inalambrico","conectar","desconecta"],
+  appupdate: ["update","crash","load","version","actualizar","version","cierra","cargar","abre"],
+  closeout: ["totals","match","cash","card","count","totales","coinciden","efectivo","contar"],
+  firstshift: ["first","new","start","training","walkthrough","primer","nuevo","turno","empezar","entrenamiento"]
+};
+
+/* Vendor status pages. Only Square publishes a live status feed that a
+   browser page may read directly (Access-Control-Allow-Origin: *); the
+   others are links the owner taps. Fetching never blocks the guide. */
+var STATUS = {
+  Square: { api: "https://www.issquareup.com/api/v2/status.json", page: "https://www.issquareup.com/" },
+  Toast: { page: "https://www.toaststatus.com/" },
+  Clover: { page: "https://clover.statuspage.io/" },
+  Aloha: { page: "https://status.ncrvoyix.com/" }
+};
+
 /* Pure step engine — testable without a DOM.
    Returns {view:"step", step:n} | {view:"fixed"} | {view:"escalate"}.
    answer: "yes" | "no" for fix steps, "got" for info/stop steps. */
@@ -535,6 +650,104 @@ function nextState(flow, stepIdx, answer){
   if (answer === "yes") return { view:"fixed" };
   if (stepIdx + 1 >= flow.steps.length) return { view:"escalate" };
   return { view:"step", step: stepIdx + 1 };
+}
+
+/* Symptom checker — pure, testable without a DOM.
+   Scores each flow by plain-word overlap with its title (3), keywords (2)
+   and blurb (1); returns the top 3 flows with any score, best first. */
+var STOP_WORDS = ["the","and","or","is","it","its","my","won","dont","doesnt","cant","not","a","an","to","on","at","of","de","la","el","los","las","un","una","no","se","con","en","por","que","mi","lo","al","del","y","o","es"];
+function normWords(s){
+  return (s || "").toLowerCase().replace(/[^a-z0-9\u00e1\u00e9\u00ed\u00f3\u00fa\u00f1\u00fc\s]/g, " ").split(/\s+/)
+    .map(function(w){ if (w.length > 3 && w.charAt(w.length - 1) === "s") return w.slice(0, -1); return w; })
+    .filter(function(w){ return w.length > 1 && STOP_WORDS.indexOf(w) === -1; });
+}
+function searchFlows(query){
+  var q = normWords(query);
+  if (!q.length) return [];
+  var scored = [];
+  FLOWS.forEach(function(f){
+    var titleW = normWords(flowTitle(f));
+    var keysW = normWords((FLOW_KEYS[f.id] || []).join(" "));
+    var blurbW = normWords(flowBlurb(f));
+    var score = 0;
+    q.forEach(function(w){
+      if (titleW.indexOf(w) !== -1) score += 3;
+      else if (keysW.indexOf(w) !== -1) score += 2;
+      else if (blurbW.indexOf(w) !== -1) score += 1;
+    });
+    if (score > 0) scored.push({ flow: f, score: score });
+  });
+  scored.sort(function(a, b){ return b.score - a.score; });
+  return scored.slice(0, 3).map(function(s){ return s.flow; });
+}
+
+/* Incident log — pure helpers over a JSON array in localStorage.
+   Entry: {flow, outcome:"fixed"|"escalated"|"ticket", at:ISO, ticket?}.
+   The log lives on this device only; nothing leaves the phone. */
+var LOG_KEY = "posrescue-log";
+function loadLog(){
+  try {
+    var raw = storeGet(LOG_KEY);
+    if (raw){ var a = JSON.parse(raw); if (Array.isArray(a)) return a; }
+  } catch(e){}
+  return [];
+}
+function saveLog(entries){
+  storeSet(LOG_KEY, JSON.stringify(entries.slice(-200)));
+}
+function logIncident(flowId, outcome, extra){
+  var entries = loadLog();
+  var e = { flow: flowId, outcome: outcome, at: new Date().toISOString() };
+  if (extra && extra.ticket) e.ticket = extra.ticket;
+  entries.push(e);
+  saveLog(entries);
+  return e;
+}
+function updateLogEntry(ticket, outcome){
+  var entries = loadLog();
+  var changed = false;
+  for (var i = entries.length - 1; i >= 0; i--){
+    if (entries[i].ticket === ticket){ entries[i].outcome = outcome; changed = true; break; }
+  }
+  if (changed) saveLog(entries);
+  return changed;
+}
+function monthSummary(entries, year, month){
+  var list = entries.filter(function(e){
+    var d = new Date(e.at);
+    return d.getFullYear() === year && d.getMonth() === month;
+  });
+  var fixed = 0, help = 0, tickets = 0, counts = {};
+  list.forEach(function(e){
+    if (e.outcome === "fixed") fixed++; else help++;
+    if (e.outcome === "ticket") tickets++;
+    counts[e.flow] = (counts[e.flow] || 0) + 1;
+  });
+  var topId = null, topCount = 0;
+  Object.keys(counts).forEach(function(k){ if (counts[k] > topCount){ topCount = counts[k]; topId = k; } });
+  return { total: list.length, fixed: fixed, help: help, tickets: tickets,
+           topId: topId, topCount: topCount, recent: list.slice(-10).reverse() };
+}
+function nextTicketSeq(entries, now){
+  var day = now.toISOString().slice(0, 10);
+  var n = 0;
+  entries.forEach(function(e){ if (e.ticket && e.at.slice(0, 10) === day) n++; });
+  return n + 1;
+}
+function makeTicketId(seq, now){
+  var d = now || new Date();
+  var ymd = d.toISOString().slice(2, 10).replace(/-/g, "");
+  return "PR-" + ymd + "-" + ("00" + seq).slice(-3);
+}
+
+/* Vendor status feed — pure mapping from a statuspage status.json body. */
+function parseStatus(json){
+  try {
+    var ind = json && json.status && json.status.indicator;
+    if (ind === "none") return "ok";
+    if (ind === "minor" || ind === "major" || ind === "partial") return "down";
+    return "unknown";
+  } catch(e){ return "unknown"; }
 }
 
 /* Local storage helpers — safe when storage is missing or blocked. */
@@ -572,7 +785,7 @@ function getStepText(step, vendor){
 function el(id){ return document.getElementById(id); }
 function show(id){
   currentView = id;
-  ["view-home","view-flow","view-fixed","view-escalate","view-checklist"].forEach(function(v){ el(v).hidden = (v !== id); });
+  ["view-home","view-flow","view-fixed","view-escalate","view-checklist","view-dash"].forEach(function(v){ el(v).hidden = (v !== id); });
   window.scrollTo(0, 0);
 }
 
@@ -606,6 +819,9 @@ function renderChrome(){
   el("checklistTitle").textContent = t("checklistTitle");
   el("checklistIntro").textContent = t("checklistIntro");
   el("checklistResetBtn").textContent = t("checklistReset");
+  el("dashBackBtn").innerHTML = t("backAll");
+  el("dashKicker").textContent = t("dashKicker");
+  el("dashTitle").textContent = t("dashTitle");
   try { document.documentElement.lang = LANG; } catch(e){}
 }
 
@@ -617,6 +833,10 @@ function renderHome(){
     html += '<button class="vendor-btn' + (v === currentVendor ? ' sel' : '') + '" data-vendor="' + v + '">' + label + '</button>';
   });
   html += '</div></div>';
+  html += '<input class="searchbox" id="searchInput" type="search" placeholder="' + t("searchPlaceholder") + '" autocomplete="off">';
+  html += '<p class="searchhint">' + t("searchHint") + '</p>';
+  html += '<div id="searchResults"></div>';
+  html += '<div class="outage"><b>' + t("outageTitle") + '</b><div id="outageBox"><button class="btn ghost single" id="outageBtn">' + t("outageCheck") + '</button><p class="searchhint">' + t("outageNote") + '</p></div></div>';
   html += '<div class="note"><b>' + t("installTitle") + '.</b> ' + t("installText") + '</div>';
   GROUP_ORDER.forEach(function(g){
     var flows = FLOWS.filter(function(f){ return f.group === g; });
@@ -628,14 +848,20 @@ function renderHome(){
   });
   html += '<button class="symp" data-checklist="1"><div class="t">\u2705 ' + t("checklistBtn") + '</div><div class="d">' + t("checklistIntro") + '</div></button>';
   html += '<div class="note owner"><b>' + t("ownerTitle") + '.</b> ' + t("ownerText") + '</div>';
+  html += '<button class="symp" data-dash="1"><div class="t">\uD83D\uDCCA ' + t("dashBtn") + '</div><div class="d">' + t("dashBlurb") + '</div></button>';
   el("homeGroups").innerHTML = html;
   var btns = document.querySelectorAll(".symp");
   for (var i = 0; i < btns.length; i++){
     btns[i].onclick = function(){
       if (this.getAttribute("data-checklist")){ renderChecklist(); show("view-checklist"); }
+      else if (this.getAttribute("data-dash")){ renderDash(); show("view-dash"); }
       else { openFlow(this.getAttribute("data-flow")); }
     };
   }
+  var si = document.getElementById("searchInput");
+  if (si){ si.oninput = function(){ renderSearch(this.value); }; }
+  var ob = document.getElementById("outageBtn");
+  if (ob){ ob.onclick = function(){ renderOutage(); }; }
   var vbtns = document.querySelectorAll(".vendor-btn");
   for (var j = 0; j < vbtns.length; j++){
     vbtns[j].onclick = function(){ setVendor(this.getAttribute("data-vendor")); };
@@ -663,6 +889,135 @@ function renderChecklist(){
   }
 }
 
+function renderSearch(q){
+  var box = el("searchResults");
+  if (!box) return;
+  if (!q || !q.trim()){ box.innerHTML = ""; return; }
+  var results = searchFlows(q);
+  if (!results.length){ box.innerHTML = '<p class="searchhint">' + t("searchNoMatch") + '</p>'; return; }
+  var html = '<div class="group-h">' + t("searchResults") + '</div>';
+  results.forEach(function(f){
+    html += '<button class="symp" data-flow="' + f.id + '"><div class="t">' + f.icon + ' ' + flowTitle(f) + '</div><div class="d">' + flowBlurb(f) + '</div></button>';
+  });
+  box.innerHTML = html;
+  var btns = box.querySelectorAll(".symp");
+  for (var i = 0; i < btns.length; i++){
+    btns[i].onclick = function(){ openFlow(this.getAttribute("data-flow")); };
+  }
+}
+
+function statusLinkHtml(v){
+  var s = STATUS[v];
+  if (!s) return "";
+  return '<p><a class="btn ghost single" href="' + s.page + '" target="_blank" rel="noopener">' + t("outageOpen") + ' — ' + v + '</a></p>';
+}
+
+function renderOutage(){
+  var box = el("outageBox");
+  if (!box) return;
+  var v = currentVendor;
+  if (v === "Square" && typeof fetch !== "undefined"){
+    box.innerHTML = '<p>' + t("outageChecking") + '</p>';
+    var done = false;
+    var timer = setTimeout(function(){
+      if (!done){ done = true; box.innerHTML = '<p>' + t("outageFail") + '</p>' + statusLinkHtml("Square"); }
+    }, 8000);
+    fetch(STATUS.Square.api).then(function(r){ return r.json(); }).then(function(j){
+      if (done) return;
+      done = true; clearTimeout(timer);
+      var st = parseStatus(j);
+      if (st === "ok") box.innerHTML = '<p><span class="ok">' + t("outageOk") + '</span></p>' + statusLinkHtml("Square");
+      else if (st === "down") box.innerHTML = '<p><span class="down">' + t("outageDown") + '</span></p>' + statusLinkHtml("Square");
+      else box.innerHTML = '<p>' + t("outageFail") + '</p>' + statusLinkHtml("Square");
+    }).catch(function(){
+      if (done) return;
+      done = true; clearTimeout(timer);
+      box.innerHTML = '<p>' + t("outageFail") + '</p>' + statusLinkHtml("Square");
+    });
+  } else if (STATUS[v]) {
+    box.innerHTML = statusLinkHtml(v);
+  } else {
+    var html = "";
+    ["Square","Toast","Clover","Aloha"].forEach(function(name){ html += statusLinkHtml(name); });
+    box.innerHTML = html;
+  }
+}
+
+function flowById(id){
+  for (var i = 0; i < FLOWS.length; i++){ if (FLOWS[i].id === id) return FLOWS[i]; }
+  return null;
+}
+
+function renderDash(){
+  var now = new Date();
+  var entries = loadLog();
+  var s = monthSummary(entries, now.getFullYear(), now.getMonth());
+  var monthName = now.toLocaleDateString(LANG === "es" ? "es" : "en", { month: "long", year: "numeric" });
+  var intro;
+  if (s.total === 0){
+    el("dashIntro").textContent = t("dashEmpty");
+    el("dashBody").innerHTML = "";
+    return;
+  }
+  intro = monthName + ": " + s.total + " " + t("dashProblems") + " \u2014 " + s.fixed + " " + t("dashFixed") + ", " + s.help + " " + t("dashHelp") + ".";
+  if (s.topId){
+    var top = flowById(s.topId);
+    intro += " " + t("dashTop") + " " + flowTitle(top) + " (" + s.topCount + " " + t("dashTimes") + ").";
+  }
+  el("dashIntro").textContent = intro;
+  var html = '<div class="dashrow">' +
+    '<div><div class="dashnum">' + s.total + '</div><div class="l">' + t("dashProblems") + '</div></div>' +
+    '<div><div class="dashnum">' + s.fixed + '</div><div class="l">' + t("dashFixed") + '</div></div>' +
+    '<div><div class="dashnum">' + s.help + '</div><div class="l">' + t("dashHelp") + '</div></div></div>';
+  var tickets = entries.filter(function(e){ return e.ticket && e.outcome === "ticket"; });
+  html += '<div class="group-h">' + t("dashTickets") + ' (' + tickets.length + ')</div>';
+  if (!tickets.length){
+    html += '<p class="searchhint">' + t("dashNoTickets") + '</p>';
+  } else {
+    tickets.slice(-5).reverse().forEach(function(e){
+      var f = flowById(e.flow);
+      html += '<div class="ticket"><span class="tid">' + e.ticket + '</span> \u2014 ' + (f ? flowTitle(f) : e.flow) +
+        '<br><button class="btn ghost single" data-ticket="' + e.ticket + '">' + t("dashMarkFixed") + '</button></div>';
+    });
+  }
+  html += '<div class="group-h">' + t("dashRecent") + '</div>';
+  if (!s.recent.length){
+    html += '<p class="searchhint">' + t("dashNoRecent") + '</p>';
+  } else {
+    s.recent.forEach(function(e){
+      var f = flowById(e.flow);
+      var when = new Date(e.at);
+      var whenStr = when.toLocaleDateString(LANG === "es" ? "es" : "en", { month: "short", day: "numeric" }) + " " +
+        when.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+      html += '<div class="ticket">' + (f ? flowTitle(f) : e.flow) + ' \u2014 ' +
+        (e.outcome === "fixed" ? t("dashFixed") : (e.ticket ? e.ticket : t("dashHelp"))) +
+        '<br><span class="searchhint">' + whenStr + '</span></div>';
+    });
+  }
+  el("dashBody").innerHTML = html;
+  var tbtns = document.querySelectorAll("#dashBody [data-ticket]");
+  for (var i = 0; i < tbtns.length; i++){
+    tbtns[i].onclick = function(){
+      updateLogEntry(this.getAttribute("data-ticket"), "fixed");
+      renderDash();
+    };
+  }
+}
+
+function openTicket(){
+  if (!currentFlow) return;
+  var now = new Date();
+  var id = makeTicketId(nextTicketSeq(loadLog(), now), now);
+  var body = "POS Rescue ticket " + id + " - " + currentFlow.title +
+    ". Register: ___. Time: " + now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) +
+    ". Error on screen: ___.";
+  logIncident(currentFlow.id, "ticket", { ticket: id });
+  var msg = el("ticketMsg");
+  if (msg) msg.textContent = t("ticketSent");
+  try { window.location.href = "sms:" + CONFIG.rescuePhone + "?&body=" + encodeURIComponent(body); }
+  catch(e){}
+}
+
 function openFlow(id){
   for (var i = 0; i < FLOWS.length; i++){ if (FLOWS[i].id === id){ currentFlow = FLOWS[i]; break; } }
   currentStep = 0;
@@ -680,12 +1035,12 @@ function renderStep(){
   if (step.kind === "fix"){
     var yes = document.createElement("button");
     yes.className = "btn yes"; yes.textContent = t("yesFixed");
-    yes.onclick = function(){ show("view-fixed"); };
+    yes.onclick = function(){ if (currentFlow) logIncident(currentFlow.id, "fixed"); show("view-fixed"); };
     var no = document.createElement("button");
     no.className = "btn no"; no.textContent = t("noBroken");
     no.onclick = function(){
       var next = nextState(currentFlow, currentStep, "no");
-      if (next.view === "escalate"){ renderEscalate(); show("view-escalate"); }
+      if (next.view === "escalate"){ if (currentFlow) logIncident(currentFlow.id, "escalated"); renderEscalate(); show("view-escalate"); }
       else { currentStep = next.step; renderStep(); }
     };
     row.appendChild(yes); row.appendChild(no);
@@ -695,7 +1050,7 @@ function renderStep(){
     got.textContent = (step.kind === "stop") ? t("understood") : t("gotNext");
     got.onclick = function(){
       var next = nextState(currentFlow, currentStep, "got");
-      if (next.view === "escalate"){ renderEscalate(); show("view-escalate"); }
+      if (next.view === "escalate"){ if (currentFlow) logIncident(currentFlow.id, "escalated"); renderEscalate(); show("view-escalate"); }
       else if (next.view === "fixed"){ show("view-fixed"); }
       else { currentStep = next.step; renderStep(); }
     };
@@ -708,18 +1063,24 @@ function renderEscalate(){
   if (CONFIG.rescuePhone){
     html += '<p><a class="btn primary" href="tel:' + CONFIG.rescuePhone + '">' + t("escCall") + '</a></p>' +
       '<p><a class="btn ghost" href="sms:' + CONFIG.rescuePhone + '">' + t("escText") + '</a></p>';
+    html += '<p><button class="btn ghost single" id="ticketBtn">' + t("ticketBtn") + '</button></p>';
+    html += "<p>" + t("ticketText") + "</p>";
+    html += '<p id="ticketMsg"></p>';
     html += "<p>" + t("escPromise") + "</p>";
   } else {
     html += "<p>" + t("escFallback") + "</p>";
   }
   html += "<p>" + t("escVendor") + "</p>";
   el("escalateBody").innerHTML = html;
+  var tb = document.getElementById("ticketBtn");
+  if (tb){ tb.onclick = function(){ openTicket(); }; }
 }
 
 function rerenderCurrent(){
   if (currentView === "view-flow" && currentFlow){ renderStep(); return; }
   if (currentView === "view-escalate"){ renderEscalate(); return; }
   if (currentView === "view-checklist"){ renderChecklist(); return; }
+  if (currentView === "view-dash"){ renderDash(); return; }
   renderHome();
 }
 
@@ -741,13 +1102,14 @@ el("backBtn").onclick = function(){ show("view-home"); };
 el("fixedBackBtn").onclick = function(){ show("view-home"); };
 el("escBackBtn").onclick = function(){ show("view-home"); };
 el("checklistBackBtn").onclick = function(){ show("view-home"); };
+el("dashBackBtn").onclick = function(){ show("view-home"); };
 el("checklistResetBtn").onclick = function(){ checklistDone = {}; saveChecklist(); renderChecklist(); };
 el("langBtn").onclick = function(){ setLang(LANG === "en" ? "es" : "en"); };
 
 loadChecklist();
 renderChrome();
 renderHome();
-if (typeof window !== "undefined"){ window.POSRESCUE = { FLOWS: FLOWS, CONFIG: CONFIG, nextState: nextState, GROUP_ORDER: GROUP_ORDER, GROUP_NAMES: GROUP_NAMES, VENDORS: VENDORS, CHECKLIST: CHECKLIST, STRINGS: STRINGS, setLang: setLang, getLang: function(){ return LANG; }, setVendor: setVendor, getVendor: function(){ return currentVendor; }, getStepText: getStepText, flowTitle: flowTitle, flowBlurb: flowBlurb, t: t, renderHome: renderHome, renderChecklist: renderChecklist, renderChrome: renderChrome, renderEscalate: renderEscalate }; }
+if (typeof window !== "undefined"){ window.POSRESCUE = { FLOWS: FLOWS, CONFIG: CONFIG, nextState: nextState, GROUP_ORDER: GROUP_ORDER, GROUP_NAMES: GROUP_NAMES, VENDORS: VENDORS, CHECKLIST: CHECKLIST, STRINGS: STRINGS, FLOW_KEYS: FLOW_KEYS, STATUS: STATUS, setLang: setLang, getLang: function(){ return LANG; }, setVendor: setVendor, getVendor: function(){ return currentVendor; }, getStepText: getStepText, flowTitle: flowTitle, flowBlurb: flowBlurb, t: t, renderHome: renderHome, renderChecklist: renderChecklist, renderChrome: renderChrome, renderEscalate: renderEscalate, renderDash: renderDash, renderOutage: renderOutage, renderSearch: renderSearch, openTicket: openTicket, searchFlows: searchFlows, loadLog: loadLog, logIncident: logIncident, updateLogEntry: updateLogEntry, monthSummary: monthSummary, makeTicketId: makeTicketId, nextTicketSeq: nextTicketSeq, parseStatus: parseStatus }; }
 </script>
 </body>
 </html>
