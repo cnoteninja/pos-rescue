@@ -16,6 +16,8 @@ It works on a clerk's phone during a rush.
 - **v3 — Incident log + owner dashboard:** every fix or escalation is logged on the device (localStorage, nothing leaves the phone). The owner dashboard shows this month at a glance — how many problems, how many fixed on the spot, the most common problem, and recent incidents. The monthly "what broke, what we fixed" summary is built from this log.
 - **v3 — Rescue tickets:** from the escalation card, open a rescue ticket by text — it sends the rescue line a ticket number (PR-YYMMDD-NNN), the problem, and the time, so it's in the queue even if no one picks up right away. Open tickets live on the owner dashboard with a "Mark fixed" button.
 - **v3 — Live outage check:** a "Check live status" button. For Square it reads Square's public status feed live (the only vendor feed a browser page can read directly). For Toast, Clover and Aloha it opens that vendor's own status page. If the check can't run, it says so and links through. It never blocks the guide.
+- **v4 — Photo diagnosis:** a "Take a photo of the problem" button opens the phone camera. The clerk snaps the error screen, the blinking light, or the jam, then taps what the photo shows — the app matches it to the closest fix. The photo is shrunk on the device and saved with the incident, so it shows on the ticket and the owner dashboard. No AI reads the photo — there is no backend yet. On a ticket, the text says the photo is coming, and the app reminds the clerk to attach it in Messages (a text message can't carry a photo by itself).
+- **v4 — Shared dashboard, no server:** the owner dashboard can be shared two ways, both with no backend. "Share this dashboard" packs the month's log (text only — photos never leave the phone) into a link the owner opens on any device; that copy is read-only. "Email this month's summary" opens the owner's mail app with the month's numbers already written. A real backend is still the step that would unlock live two-way ticket status, a ticket queue, and self-serve signup with card billing.
 - Vendor picker (Square / Toast / Clover / Aloha / Other) — steps name the system's exact menus where they differ.
 - Full Spanish toggle (every flow, step, and button), persisted in localStorage.
 - Works offline once saved to the phone's home screen; weekly prevention checklist; response-time promise (answered within 15 minutes, evenings and weekends).
@@ -30,7 +32,9 @@ It works on a clerk's phone during a rush.
 number shown on the escalation card — currently 440-770-8561. The owner's
 personal number is never in this file. Tests (`node pos-rescue-test.js`,
 local only, never pushed) verify all 17 flows, the vendor picker, the
-Spanish toggle, the checklist, and the phone-number guard.
+Spanish toggle, the checklist, the symptom search, the incident log and
+dashboard, ticket IDs, the status feed, the photo diagnosis, and the
+shared dashboard — 610 checks, all passing.
 
 ## Serve it
 

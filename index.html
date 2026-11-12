@@ -64,6 +64,9 @@
   .ticket{border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:8px;font-size:.95rem}
   .ticket .tid{font-weight:700}
   .ticket button{margin-top:6px}
+  .photoimg{max-width:100%;border-radius:10px;margin:8px 0;display:block}
+  .sharelink{width:100%;font-size:.85rem;padding:10px;border:1px solid var(--line);border-radius:8px;font-family:inherit;margin-top:8px}
+  .photonote{font-size:.95rem;color:var(--muted);margin:0 0 8px}
   footer{color:var(--muted);font-size:.85rem;text-align:center;margin-top:30px;line-height:1.6}
   [hidden]{display:none !important}
 </style>
@@ -75,6 +78,7 @@
   <p id="tagline">Get the lane back open.</p>
 </header>
 <div class="wrap">
+  <input type="file" id="photoInput" accept="image/*" capture="environment" hidden>
 
   <div id="view-home">
     <div class="safety" id="safetyNote"><b>Safety first.</b> Never open a card reader or payment terminal. Never write down or share card details. Never share the register&rsquo;s admin password &mdash; the owner types their own. Some problems need your POS vendor, not a workaround &mdash; this guide will tell you when to stop and call them.</div>
@@ -88,6 +92,7 @@
       <div class="stepnum" id="stepNum"></div>
       <div class="steptitle" id="flowTitle"></div>
       <p class="steptext" id="stepText"></p>
+      <div id="photoNote"></div>
       <div class="btnrow" id="stepBtns"></div>
     </div>
   </div>
@@ -206,6 +211,27 @@ en: {
   ticketBtn: "Open a rescue ticket by text",
   ticketText: "This texts the rescue line with a ticket number, the problem, and the time — so it's in the queue even if no one picks up right away.",
   ticketSent: "Ticket sent — we'll reply within 15 minutes during evening and weekend hours.",
+  photoBtn: "\uD83D\uDCF7 Take a photo of the problem",
+  photoHint: "Snap the error screen, the blinking light, or the jam — then tap what it looks like.",
+  photoWhat: "What does the photo show?",
+  photoErr: "An error message on the screen",
+  photoFrozen: "A frozen or stuck screen",
+  photoBlink: "A blinking light",
+  photoBlank: "A blank or black screen",
+  photoJam: "A paper jam",
+  photoReader: "A card reader problem",
+  photoTotals: "Totals that don't match",
+  photoOther: "Something else — I'll type it",
+  photoAttached: "Photo attached — it will be saved with this fix.",
+  photoAttachHint: "Attach the photo in Messages — tap + and pick the photo you just took.",
+  photoNoMatch: "No close match — describe it in the search box above.",
+  shareBtn: "Share this dashboard",
+  shareHint: "Photos stay on this phone — the link shares the list of what broke.",
+  shareCopied: "Link copied — send it to the owner.",
+  shareCopyHint: "Copy this link and send it to the owner:",
+  emailBtn: "Email this month's summary",
+  sharedBanner: "Shared dashboard — a read-only copy. Fixes are saved on the register's phone.",
+  dashPhoto: "Photo of the problem",
   langBtn: "Espa\u00f1ol"
 },
 es: {
@@ -274,6 +300,27 @@ es: {
   ticketBtn: "Abrir un boleto de rescate por mensaje",
   ticketText: "Esto envía un mensaje a la línea de rescate con un número de boleto, el problema y la hora — para que quede en la cola aunque nadie conteste de inmediato.",
   ticketSent: "Boleto enviado — respondemos en menos de 15 minutos durante las horas de la tarde y el fin de semana.",
+  photoBtn: "\uD83D\uDCF7 Toma una foto del problema",
+  photoHint: "Fotograf\u00eda la pantalla de error, la luz que parpadea o el atasco — y luego toca lo que se ve.",
+  photoWhat: "\u00bfQu\u00e9 muestra la foto?",
+  photoErr: "Un mensaje de error en la pantalla",
+  photoFrozen: "Una pantalla congelada o trabada",
+  photoBlink: "Una luz parpadeando",
+  photoBlank: "Una pantalla en blanco o negra",
+  photoJam: "Papel atascado",
+  photoReader: "Un problema con el lector de tarjetas",
+  photoTotals: "Totales que no coinciden",
+  photoOther: "Otra cosa — lo escribo",
+  photoAttached: "Foto adjunta — se guardar\u00e1 con esta soluci\u00f3n.",
+  photoAttachHint: "Adjunta la foto en Mensajes — toca + y elige la foto que acabas de tomar.",
+  photoNoMatch: "Sin coincidencia — descr\u00edbelo en el cuadro de b\u00fasqueda.",
+  shareBtn: "Compartir este panel",
+  shareHint: "Las fotos se quedan en este tel\u00e9fono — el enlace comparte la lista de lo que se rompi\u00f3.",
+  shareCopied: "Enlace copiado — env\u00edaselo al due\u00f1o.",
+  shareCopyHint: "Copia este enlace y env\u00edaselo al due\u00f1o:",
+  emailBtn: "Enviar el resumen del mes por correo",
+  sharedBanner: "Panel compartido — una copia de solo lectura. Las soluciones se guardan en el tel\u00e9fono de la caja.",
+  dashPhoto: "Foto del problema",
   langBtn: "English"
 }
 };
@@ -693,15 +740,144 @@ function loadLog(){
   return [];
 }
 function saveLog(entries){
-  storeSet(LOG_KEY, JSON.stringify(entries.slice(-200)));
+  storeSet(LOG_KEY, JSON.stringify(prunePhotos(entries.slice(-200))));
 }
 function logIncident(flowId, outcome, extra){
   var entries = loadLog();
   var e = { flow: flowId, outcome: outcome, at: new Date().toISOString() };
   if (extra && extra.ticket) e.ticket = extra.ticket;
+  if (extra && extra.photo) e.photo = extra.photo;
   entries.push(e);
   saveLog(entries);
   return e;
+}
+
+/* Photo diagnosis (v4) — pure helpers. A photo is a JPEG data URL taken
+   with the phone camera, shrunk on the device so the on-phone log stays
+   small. The photo rides along with the incident it belongs to and shows
+   on the dashboard. The photo is NOT read by any AI here — there is no
+   backend yet. What the app does with a photo is: match it to a fix
+   through one tap (the clerk says what the photo shows) and attach it to
+   the ticket and the log, so the owner sees exactly what the clerk saw. */
+
+/* What the photo shows -> plain words the symptom checker understands.
+   Returns "" for "something else" (the clerk types it instead). */
+var PHOTO_SYMPTOMS = {
+  errormsg: "error message screen",
+  frozen: "screen frozen stuck",
+  blink: "blinking light printer",
+  blank: "blank black screen no power",
+  jam: "paper jam printer",
+  reader: "card reader offline chip tap",
+  totals: "totals don't match end of day",
+  other: ""
+};
+function photoSymptomQuery(choice){
+  return PHOTO_SYMPTOMS[choice] || "";
+}
+
+/* Shrink a photo data URL on the device (max width, JPEG). Calls done()
+   with the result. If the browser has no canvas/image support it calls
+   done() with the original, unchanged. */
+function downscalePhoto(dataUrl, maxW, done){
+  try {
+    if (typeof Image === "undefined" || typeof document === "undefined") { done(dataUrl); return; }
+    var img = new Image();
+    img.onload = function(){
+      try {
+        if (!img.width || img.width <= maxW){ done(dataUrl); return; }
+        var canvas = document.createElement("canvas");
+        if (!canvas || !canvas.getContext){ done(dataUrl); return; }
+        var scale = maxW / img.width;
+        canvas.width = maxW;
+        canvas.height = Math.round(img.height * scale);
+        var ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        var out = canvas.toDataURL("image/jpeg", 0.7);
+        done(out || dataUrl);
+      } catch(e){ done(dataUrl); }
+    };
+    img.onerror = function(){ done(dataUrl); };
+    img.src = dataUrl;
+  } catch(e){ done(dataUrl); }
+}
+
+/* Storage guard: photos are the only big thing in the log. Local storage
+   is about 5 MB, so keep the photo bytes under a budget by dropping the
+   oldest photos first (entries stay — only their photo is removed). */
+var PHOTO_BUDGET = 3500000;
+function photoBytes(e){ return (e && e.photo) ? String(e.photo).length : 0; }
+function prunePhotos(entries, maxBytes){
+  var budget = (typeof maxBytes === "number") ? maxBytes : PHOTO_BUDGET;
+  var total = 0;
+  entries.forEach(function(e){ total += photoBytes(e); });
+  if (total <= budget) return entries;
+  var out = entries.map(function(e){
+    var c = {}; Object.keys(e).forEach(function(k){ c[k] = e[k]; }); return c;
+  });
+  for (var i = 0; i < out.length && total > budget; i++){
+    if (out[i].photo){ total -= photoBytes(out[i]); delete out[i].photo; }
+  }
+  return out;
+}
+
+/* The photo waiting to be attached to the next outcome. Set when the
+   clerk takes a photo, spent the first time an incident is logged. */
+var pendingPhoto = null;
+function logWithPhoto(flowId, outcome, extra){
+  var ex = extra || {};
+  if (pendingPhoto && !ex.photo) ex.photo = pendingPhoto;
+  var e = logIncident(flowId, outcome, ex);
+  pendingPhoto = null;
+  return e;
+}
+
+/* Shared dashboard (v4) — no server. The month's log (text entries only,
+   photos never leave this phone) is packed into a link the owner can
+   open on any device: index.html#log=<base64url JSON>. The shared copy
+   is read-only. The same summary can go out by email as a plain-text
+   mailto instead. */
+function encodeShareLog(entries){
+  try {
+    var slim = entries.map(function(e){
+      var c = { flow: e.flow, outcome: e.outcome, at: e.at };
+      if (e.ticket) c.ticket = e.ticket;
+      return c;
+    });
+    var json = JSON.stringify(slim);
+    if (typeof btoa === "undefined") return "";
+    return btoa(json).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  } catch(e){ return ""; }
+}
+function decodeShareLog(str){
+  try {
+    if (!str) return null;
+    if (typeof atob === "undefined") return null;
+    var b64 = String(str).replace(/-/g, "+").replace(/_/g, "/");
+    while (b64.length % 4) b64 += "=";
+    var a = JSON.parse(atob(b64));
+    if (!Array.isArray(a)) return null;
+    return a.filter(function(e){ return e && typeof e.flow === "string" && typeof e.at === "string"; });
+  } catch(e){ return null; }
+}
+function shareLink(entries){
+  var base = "";
+  try { if (typeof location !== "undefined" && location.href) base = location.href.split("#")[0]; } catch(e){}
+  return base + "#log=" + encodeShareLog(entries);
+}
+function buildSummaryText(entries, year, month){
+  var s = monthSummary(entries, year, month);
+  if (s.total === 0) return t("dashEmpty");
+  var monthName = new Date(year, month, 1).toLocaleDateString(LANG === "es" ? "es" : "en", { month: "long", year: "numeric" });
+  var lines = [];
+  lines.push("POS Rescue — " + monthName);
+  lines.push(s.total + " " + t("dashProblems") + " — " + s.fixed + " " + t("dashFixed") + ", " + s.help + " " + t("dashHelp") + ".");
+  if (s.topId){ var top = flowById(s.topId); lines.push(t("dashTop") + " " + (top ? flowTitle(top) : s.topId) + " (" + s.topCount + " " + t("dashTimes") + ")."); }
+  var tickets = entries.filter(function(e){ return e.ticket && e.outcome === "ticket"; });
+  if (tickets.length){
+    lines.push(t("dashTickets") + ": " + tickets.map(function(e){ return e.ticket; }).join(", "));
+  }
+  return lines.join("\n");
 }
 function updateLogEntry(ticket, outcome){
   var entries = loadLog();
@@ -765,6 +941,18 @@ if (LANG !== "en" && LANG !== "es") LANG = "en";
 var currentVendor = storeGet("posrescue-vendor") || "Other";
 if (VENDORS.indexOf(currentVendor) === -1) currentVendor = "Other";
 var currentView = "view-home";
+
+/* A dashboard link someone else opened: #log=<...>. A read-only copy of
+   another phone's log. */
+var sharedEntries = null;
+function loadSharedLog(){
+  try {
+    if (typeof location === "undefined" || !location.hash) return;
+    var m = location.hash.match(/^#log=(.+)$/);
+    if (m) sharedEntries = decodeShareLog(m[1]);
+  } catch(e){ sharedEntries = null; }
+}
+function setSharedLog(entries){ sharedEntries = entries; return sharedEntries; }
 
 function t(key){
   var s = STRINGS[LANG] || STRINGS.en;
@@ -835,6 +1023,7 @@ function renderHome(){
   html += '</div></div>';
   html += '<input class="searchbox" id="searchInput" type="search" placeholder="' + t("searchPlaceholder") + '" autocomplete="off">';
   html += '<p class="searchhint">' + t("searchHint") + '</p>';
+  html += '<div><button class="btn ghost single" id="photoBtn">' + t("photoBtn") + '</button><p class="searchhint">' + t("photoHint") + '</p></div>';
   html += '<div id="searchResults"></div>';
   html += '<div class="outage"><b>' + t("outageTitle") + '</b><div id="outageBox"><button class="btn ghost single" id="outageBtn">' + t("outageCheck") + '</button><p class="searchhint">' + t("outageNote") + '</p></div></div>';
   html += '<div class="note"><b>' + t("installTitle") + '.</b> ' + t("installText") + '</div>';
@@ -860,6 +1049,8 @@ function renderHome(){
   }
   var si = document.getElementById("searchInput");
   if (si){ si.oninput = function(){ renderSearch(this.value); }; }
+  var pb = document.getElementById("photoBtn");
+  if (pb){ pb.onclick = function(){ var inp = document.getElementById("photoInput"); if (inp) inp.click(); }; }
   var ob = document.getElementById("outageBtn");
   if (ob){ ob.onclick = function(){ renderOutage(); }; }
   var vbtns = document.querySelectorAll(".vendor-btn");
@@ -903,6 +1094,32 @@ function renderSearch(q){
   var btns = box.querySelectorAll(".symp");
   for (var i = 0; i < btns.length; i++){
     btns[i].onclick = function(){ openFlow(this.getAttribute("data-flow")); };
+  }
+}
+
+function renderPhotoPicker(){
+  var box = el("searchResults");
+  if (!box) return;
+  var labels = { errormsg:"photoErr", frozen:"photoFrozen", blink:"photoBlink", blank:"photoBlank", jam:"photoJam", reader:"photoReader", totals:"photoTotals", other:"photoOther" };
+  var html = '<div class="group-h">' + t("photoWhat") + '</div>';
+  Object.keys(labels).forEach(function(choice){
+    html += '<button class="symp" data-photo="' + choice + '"><div class="t">' + t(labels[choice]) + '</div></button>';
+  });
+  box.innerHTML = html;
+  var btns = box.querySelectorAll(".symp");
+  for (var i = 0; i < btns.length; i++){
+    btns[i].onclick = function(){
+      var choice = this.getAttribute("data-photo");
+      if (choice === "other"){
+        var si = document.getElementById("searchInput");
+        if (si) si.focus();
+        box.innerHTML = '<p class="searchhint">' + t("photoNoMatch") + '</p>';
+        return;
+      }
+      var results = searchFlows(photoSymptomQuery(choice));
+      if (!results.length){ box.innerHTML = '<p class="searchhint">' + t("photoNoMatch") + '</p>'; return; }
+      openFlow(results[0].id);
+    };
   }
 }
 
@@ -950,7 +1167,8 @@ function flowById(id){
 
 function renderDash(){
   var now = new Date();
-  var entries = loadLog();
+  var entries = sharedEntries || loadLog();
+  var shared = !!sharedEntries;
   var s = monthSummary(entries, now.getFullYear(), now.getMonth());
   var monthName = now.toLocaleDateString(LANG === "es" ? "es" : "en", { month: "long", year: "numeric" });
   var intro;
@@ -965,7 +1183,9 @@ function renderDash(){
     intro += " " + t("dashTop") + " " + flowTitle(top) + " (" + s.topCount + " " + t("dashTimes") + ").";
   }
   el("dashIntro").textContent = intro;
-  var html = '<div class="dashrow">' +
+  var html = "";
+  if (shared) html += '<p class="searchhint">' + t("sharedBanner") + '</p>';
+  html += '<div class="dashrow">' +
     '<div><div class="dashnum">' + s.total + '</div><div class="l">' + t("dashProblems") + '</div></div>' +
     '<div><div class="dashnum">' + s.fixed + '</div><div class="l">' + t("dashFixed") + '</div></div>' +
     '<div><div class="dashnum">' + s.help + '</div><div class="l">' + t("dashHelp") + '</div></div></div>';
@@ -976,8 +1196,10 @@ function renderDash(){
   } else {
     tickets.slice(-5).reverse().forEach(function(e){
       var f = flowById(e.flow);
-      html += '<div class="ticket"><span class="tid">' + e.ticket + '</span> \u2014 ' + (f ? flowTitle(f) : e.flow) +
-        '<br><button class="btn ghost single" data-ticket="' + e.ticket + '">' + t("dashMarkFixed") + '</button></div>';
+      html += '<div class="ticket"><span class="tid">' + e.ticket + '</span> \u2014 ' + (f ? flowTitle(f) : e.flow);
+      if (e.photo) html += '<br><img class="photoimg" src="' + e.photo + '" alt="' + t("dashPhoto") + '">';
+      if (!shared) html += '<br><button class="btn ghost single" data-ticket="' + e.ticket + '">' + t("dashMarkFixed") + '</button>';
+      html += '</div>';
     });
   }
   html += '<div class="group-h">' + t("dashRecent") + '</div>';
@@ -991,10 +1213,29 @@ function renderDash(){
         when.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
       html += '<div class="ticket">' + (f ? flowTitle(f) : e.flow) + ' \u2014 ' +
         (e.outcome === "fixed" ? t("dashFixed") : (e.ticket ? e.ticket : t("dashHelp"))) +
-        '<br><span class="searchhint">' + whenStr + '</span></div>';
+        '<br><span class="searchhint">' + whenStr + '</span>';
+      if (e.photo) html += '<img class="photoimg" src="' + e.photo + '" alt="' + t("dashPhoto") + '">';
+      html += '</div>';
     });
   }
+  if (!shared){
+    html += '<div class="group-h">' + t("shareBtn") + '</div>';
+    html += '<p><button class="btn ghost single" id="shareBtn">' + t("shareBtn") + '</button></p>';
+    html += '<p class="searchhint">' + t("shareHint") + '</p>';
+    html += '<p><a class="btn ghost single" id="emailBtn" href="mailto:?subject=' + encodeURIComponent("POS Rescue — " + monthName) + '&body=' + encodeURIComponent(buildSummaryText(entries, now.getFullYear(), now.getMonth())) + '">' + t("emailBtn") + '</a></p>';
+    html += '<div id="shareBox"></div>';
+  }
   el("dashBody").innerHTML = html;
+  var sb = document.getElementById("shareBtn");
+  if (sb){ sb.onclick = function(){
+    var link = shareLink(entries);
+    var box = el("shareBox");
+    if (typeof navigator !== "undefined" && navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(link).then(function(){ if (box) box.innerHTML = '<p class="searchhint">' + t("shareCopied") + '</p>'; }).catch(function(){ if (box) box.innerHTML = '<p class="searchhint">' + t("shareCopyHint") + '</p><textarea class="sharelink" readonly>' + link + '</textarea>'; });
+    } else if (box){
+      box.innerHTML = '<p class="searchhint">' + t("shareCopyHint") + '</p><textarea class="sharelink" readonly>' + link + '</textarea>';
+    }
+  }; }
   var tbtns = document.querySelectorAll("#dashBody [data-ticket]");
   for (var i = 0; i < tbtns.length; i++){
     tbtns[i].onclick = function(){
@@ -1008,12 +1249,14 @@ function openTicket(){
   if (!currentFlow) return;
   var now = new Date();
   var id = makeTicketId(nextTicketSeq(loadLog(), now), now);
+  var hasPhoto = !!pendingPhoto;
   var body = "POS Rescue ticket " + id + " - " + currentFlow.title +
     ". Register: ___. Time: " + now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) +
     ". Error on screen: ___.";
-  logIncident(currentFlow.id, "ticket", { ticket: id });
+  if (hasPhoto) body += " Photo of the screen: attaching in this thread.";
+  logWithPhoto(currentFlow.id, "ticket", { ticket: id });
   var msg = el("ticketMsg");
-  if (msg) msg.textContent = t("ticketSent");
+  if (msg) msg.textContent = t("ticketSent") + (hasPhoto ? " " + t("photoAttachHint") : "");
   try { window.location.href = "sms:" + CONFIG.rescuePhone + "?&body=" + encodeURIComponent(body); }
   catch(e){}
 }
@@ -1030,17 +1273,25 @@ function renderStep(){
   el("stepNum").textContent = t("stepOf").replace("{n}", String(currentStep + 1)).replace("{m}", String(currentFlow.steps.length));
   el("flowTitle").textContent = flowTitle(currentFlow);
   el("stepText").textContent = getStepText(step, currentVendor);
+  var pn = el("photoNote");
+  if (pn){
+    if (pendingPhoto){
+      pn.innerHTML = '<p class="photonote">' + t("photoAttached") + '</p><img class="photoimg" src="' + pendingPhoto + '" alt="' + t("dashPhoto") + '">';
+    } else {
+      pn.innerHTML = "";
+    }
+  }
   var row = el("stepBtns");
   row.innerHTML = "";
   if (step.kind === "fix"){
     var yes = document.createElement("button");
     yes.className = "btn yes"; yes.textContent = t("yesFixed");
-    yes.onclick = function(){ if (currentFlow) logIncident(currentFlow.id, "fixed"); show("view-fixed"); };
+    yes.onclick = function(){ if (currentFlow) logWithPhoto(currentFlow.id, "fixed"); show("view-fixed"); };
     var no = document.createElement("button");
     no.className = "btn no"; no.textContent = t("noBroken");
     no.onclick = function(){
       var next = nextState(currentFlow, currentStep, "no");
-      if (next.view === "escalate"){ if (currentFlow) logIncident(currentFlow.id, "escalated"); renderEscalate(); show("view-escalate"); }
+      if (next.view === "escalate"){ if (currentFlow) logWithPhoto(currentFlow.id, "escalated"); renderEscalate(); show("view-escalate"); }
       else { currentStep = next.step; renderStep(); }
     };
     row.appendChild(yes); row.appendChild(no);
@@ -1050,7 +1301,7 @@ function renderStep(){
     got.textContent = (step.kind === "stop") ? t("understood") : t("gotNext");
     got.onclick = function(){
       var next = nextState(currentFlow, currentStep, "got");
-      if (next.view === "escalate"){ if (currentFlow) logIncident(currentFlow.id, "escalated"); renderEscalate(); show("view-escalate"); }
+      if (next.view === "escalate"){ if (currentFlow) logWithPhoto(currentFlow.id, "escalated"); renderEscalate(); show("view-escalate"); }
       else if (next.view === "fixed"){ show("view-fixed"); }
       else { currentStep = next.step; renderStep(); }
     };
@@ -1106,10 +1357,27 @@ el("dashBackBtn").onclick = function(){ show("view-home"); };
 el("checklistResetBtn").onclick = function(){ checklistDone = {}; saveChecklist(); renderChecklist(); };
 el("langBtn").onclick = function(){ setLang(LANG === "en" ? "es" : "en"); };
 
+el("photoInput").onchange = function(){
+  var f = this.files && this.files[0];
+  if (!f) return;
+  if (typeof FileReader === "undefined") return;
+  var rd = new FileReader();
+  rd.onload = function(){
+    downscalePhoto(rd.result, 800, function(small){
+      pendingPhoto = small;
+      renderPhotoPicker();
+    });
+  };
+  rd.readAsDataURL(f);
+  this.value = "";
+};
+
 loadChecklist();
 renderChrome();
 renderHome();
-if (typeof window !== "undefined"){ window.POSRESCUE = { FLOWS: FLOWS, CONFIG: CONFIG, nextState: nextState, GROUP_ORDER: GROUP_ORDER, GROUP_NAMES: GROUP_NAMES, VENDORS: VENDORS, CHECKLIST: CHECKLIST, STRINGS: STRINGS, FLOW_KEYS: FLOW_KEYS, STATUS: STATUS, setLang: setLang, getLang: function(){ return LANG; }, setVendor: setVendor, getVendor: function(){ return currentVendor; }, getStepText: getStepText, flowTitle: flowTitle, flowBlurb: flowBlurb, t: t, renderHome: renderHome, renderChecklist: renderChecklist, renderChrome: renderChrome, renderEscalate: renderEscalate, renderDash: renderDash, renderOutage: renderOutage, renderSearch: renderSearch, openTicket: openTicket, searchFlows: searchFlows, loadLog: loadLog, logIncident: logIncident, updateLogEntry: updateLogEntry, monthSummary: monthSummary, makeTicketId: makeTicketId, nextTicketSeq: nextTicketSeq, parseStatus: parseStatus }; }
+loadSharedLog();
+if (sharedEntries){ renderDash(); show("view-dash"); }
+if (typeof window !== "undefined"){ window.POSRESCUE = { FLOWS: FLOWS, CONFIG: CONFIG, nextState: nextState, GROUP_ORDER: GROUP_ORDER, GROUP_NAMES: GROUP_NAMES, VENDORS: VENDORS, CHECKLIST: CHECKLIST, STRINGS: STRINGS, FLOW_KEYS: FLOW_KEYS, STATUS: STATUS, setLang: setLang, getLang: function(){ return LANG; }, setVendor: setVendor, getVendor: function(){ return currentVendor; }, getStepText: getStepText, flowTitle: flowTitle, flowBlurb: flowBlurb, t: t, renderHome: renderHome, renderChecklist: renderChecklist, renderChrome: renderChrome, renderEscalate: renderEscalate, renderDash: renderDash, renderOutage: renderOutage, renderSearch: renderSearch, openTicket: openTicket, openFlow: openFlow, searchFlows: searchFlows, loadLog: loadLog, logIncident: logIncident, logWithPhoto: logWithPhoto, setPendingPhoto: function(p){ pendingPhoto = p; return pendingPhoto; }, getPendingPhoto: function(){ return pendingPhoto; }, updateLogEntry: updateLogEntry, monthSummary: monthSummary, makeTicketId: makeTicketId, nextTicketSeq: nextTicketSeq, parseStatus: parseStatus, photoSymptomQuery: photoSymptomQuery, downscalePhoto: downscalePhoto, prunePhotos: prunePhotos, encodeShareLog: encodeShareLog, decodeShareLog: decodeShareLog, buildSummaryText: buildSummaryText, shareLink: shareLink, renderPhotoPicker: renderPhotoPicker, setSharedLog: setSharedLog }; }
 </script>
 </body>
 </html>
