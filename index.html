@@ -3,17 +3,27 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#16233a">
 <title>POS Rescue — Get the lane back open</title>
 <style>
   :root{--navy:#16233a;--ink:#1c2433;--muted:#5b6675;--line:#dfe4ea;--bg:#f4f6f8;--card:#ffffff;--green:#1e7d32;--amber:#8a6d00;--red:#b3261e;--accent:#0b6fa4}
   *{box-sizing:border-box}
   body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--ink);line-height:1.5}
-  header{background:var(--navy);color:#fff;padding:22px 18px 18px}
+  header{background:var(--navy);color:#fff;padding:22px 18px 18px;position:relative}
   header h1{margin:0;font-size:1.7rem;letter-spacing:.01em}
   header p{margin:4px 0 0;opacity:.88;font-size:1rem}
+  .langbtn{position:absolute;top:16px;right:14px;background:rgba(255,255,255,.14);color:#fff;border:1px solid rgba(255,255,255,.55);border-radius:20px;padding:6px 13px;font-size:.9rem;font-weight:700;cursor:pointer;font-family:inherit}
   .wrap{max-width:560px;margin:0 auto;padding:0 14px 40px}
   .safety{background:#fff8e1;border:1px solid #eed48a;border-radius:12px;padding:12px 14px;margin:16px 0 4px;font-size:.92rem}
   .safety b{color:#6d4c00}
+  .note{background:#eef6fb;border:1px solid #b8d9ea;border-radius:12px;padding:12px 14px;margin:16px 0 4px;font-size:.95rem}
+  .note.owner{background:#f0f7f0;border-color:#9ccc9f}
+  .vendor{margin:16px 0 4px}
+  .vendor-t{font-size:.85rem;font-weight:700;color:var(--muted);margin-bottom:6px}
+  .vendor-row{display:flex;flex-wrap:wrap;gap:8px}
+  .vendor-btn{border:1px solid var(--line);background:#fff;border-radius:20px;padding:8px 14px;font-size:.95rem;font-weight:700;cursor:pointer;font-family:inherit;color:var(--ink)}
+  .vendor-btn.sel{background:var(--navy);color:#fff;border-color:var(--navy)}
   .group-h{font-size:.78rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:24px 2px 8px;font-weight:700}
   .symp{display:block;width:100%;text-align:left;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:10px;cursor:pointer;min-height:64px;font-family:inherit}
   .symp:active{transform:scale(.99)}
@@ -39,21 +49,25 @@
   .resultcard h2{margin:0 0 8px;font-size:1.35rem}
   .resultcard p{margin:10px 0;font-size:1.05rem}
   .resultcard .big{font-size:1.2rem;font-weight:700}
+  .check{display:block;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:10px;font-size:1.05rem;cursor:pointer}
+  .check input{width:22px;height:22px;accent-color:var(--green);vertical-align:-4px;margin-right:8px}
+  .checkcount{color:var(--muted);font-size:.95rem}
   footer{color:var(--muted);font-size:.85rem;text-align:center;margin-top:30px;line-height:1.6}
   [hidden]{display:none !important}
 </style>
 </head>
 <body>
 <header>
+  <button id="langBtn" class="langbtn">Espa&ntilde;ol</button>
   <h1>POS Rescue</h1>
-  <p>Get the lane back open.</p>
+  <p id="tagline">Get the lane back open.</p>
 </header>
 <div class="wrap">
 
   <div id="view-home">
-    <div class="safety"><b>Safety first.</b> Never open a card reader or payment terminal. Never write down or share card details. Never share the register&rsquo;s admin password &mdash; the owner types their own. Some problems need your POS vendor, not a workaround &mdash; this guide will tell you when to stop and call them.</div>
+    <div class="safety" id="safetyNote"><b>Safety first.</b> Never open a card reader or payment terminal. Never write down or share card details. Never share the register&rsquo;s admin password &mdash; the owner types their own. Some problems need your POS vendor, not a workaround &mdash; this guide will tell you when to stop and call them.</div>
     <div id="homeGroups"></div>
-    <footer>POS Rescue &mdash; a guide for store clerks.<br>Works with Square, Toast, Aloha, Clover, NCR and most countertop systems.<br>Cleveland, Ohio</footer>
+    <footer><span id="foot1">POS Rescue &mdash; a guide for store clerks.</span><br><span id="foot2">Works with Square, Toast, Aloha, Clover, NCR and most countertop systems.</span><br><span id="foot3">Cleveland, Ohio</span></footer>
   </div>
 
   <div id="view-flow" hidden>
@@ -68,111 +82,443 @@
 
   <div id="view-fixed" hidden>
     <div class="resultcard fixed">
-      <h2>&#9989; Fixed &mdash; the lane is back open.</h2>
-      <p class="big">Nice work.</p>
-      <p>If something else goes wrong, start over from the home screen.</p>
+      <h2 id="fixedTitle">&#9989; Fixed &mdash; the lane is back open.</h2>
+      <p class="big" id="fixedSub">Nice work.</p>
+      <p id="fixedText">If something else goes wrong, start over from the home screen.</p>
       <p><button class="btn primary single" id="fixedBackBtn">Back to all fixes</button></p>
     </div>
   </div>
 
   <div id="view-escalate" hidden>
     <div class="resultcard escalate">
-      <h2>Still down? Get rescue help.</h2>
+      <h2 id="escTitle">Still down? Get rescue help.</h2>
       <div id="escalateBody"></div>
       <p><button class="btn ghost single" id="escBackBtn">Back to all fixes</button></p>
+    </div>
+  </div>
+
+  <div id="view-checklist" hidden>
+    <button class="back" id="checklistBackBtn">&larr; All fixes</button>
+    <div class="stepcard">
+      <div class="stepnum" id="checklistKicker">Once a week</div>
+      <div class="steptitle" id="checklistTitle">Weekly prevention checklist</div>
+      <p class="steptext" id="checklistIntro">Once a week, before the rush &mdash; five minutes that prevent a bad Saturday.</p>
+      <div id="checklistBody"></div>
+      <p><button class="btn ghost single" id="checklistResetBtn">Reset for the week</button></p>
     </div>
   </div>
 
 </div>
 <script>
 /* POS Rescue — single-file guide app. No backend, no external dependencies.
-   CONFIG: set rescuePhone to your Google Voice / business number before
-   sharing the link with stores. Leave it empty until the service launches —
-   the escalation card then says so instead of showing a dead link. */
+   CONFIG.rescuePhone is the Google Voice / business number shown on the
+   escalation card. The owner's personal number is never in this file. */
 var CONFIG = { rescuePhone: "440-770-8561" };
 
+/* UI strings. English is the default; Spanish covers every user-facing
+   string in the app. No dollar amounts anywhere in this file. */
+var STRINGS = {
+en: {
+  tagline: "Get the lane back open.",
+  safetyTitle: "Safety first.",
+  safetyText: "Never open a card reader or payment terminal. Never write down or share card details. Never share the register\u2019s admin password \u2014 the owner types their own. Some problems need your POS vendor, not a workaround \u2014 this guide will tell you when to stop and call them.",
+  footer1: "POS Rescue \u2014 a guide for store clerks.",
+  footer2: "Works with Square, Toast, Aloha, Clover, NCR and most countertop systems.",
+  footer3: "Cleveland, Ohio",
+  vendorTitle: "Which system do you use?",
+  vendorOther: "Other / general",
+  installTitle: "Save this guide on your phone",
+  installText: "iPhone: tap Share, then Add to Home Screen. Android: tap the menu, then Add to Home screen. Once it\u2019s saved, it works even when the internet is down \u2014 it\u2019s one self-contained file.",
+  ownerTitle: "For owners",
+  ownerText: "Paying customers get a monthly \u201cwhat broke, what we fixed\u201d summary built from rescue-line calls.",
+  checklistBtn: "Weekly prevention checklist",
+  checklistTitle: "Weekly prevention checklist",
+  checklistKicker: "Once a week",
+  checklistIntro: "Once a week, before the rush \u2014 five minutes that prevent a bad Saturday.",
+  checklistReset: "Reset for the week",
+  checklistDone: "of 6 done",
+  backAll: "\u2190 All fixes",
+  backToAll: "Back to all fixes",
+  stepOf: "Step {n} of {m}",
+  yesFixed: "Yes \u2014 fixed",
+  noBroken: "No \u2014 still broken",
+  gotNext: "Got it \u2014 next",
+  understood: "Understood",
+  fixedTitle: "\u2705 Fixed \u2014 the lane is back open.",
+  fixedSub: "Nice work.",
+  fixedText: "If something else goes wrong, start over from the home screen.",
+  escTitle: "Still down? Get rescue help.",
+  escWrite: "Before you call anyone, write down: the exact words on the screen, what time it happened, and which register it is.",
+  escCall: "Call the rescue line",
+  escText: "Text the rescue line",
+  escFallback: "The rescue line number is set when the service launches. Leave a callback note for the owner with the register, the time, and the exact error message.",
+  escVendor: "If your POS vendor\u2019s support line is open, call them too and read them the exact error message \u2014 they can often fix it remotely.",
+  escPromise: "We answer within 15 minutes during posted evening and weekend hours.",
+  langBtn: "Espa\u00f1ol"
+},
+es: {
+  tagline: "Vuelve a abrir la caja.",
+  safetyTitle: "La seguridad primero.",
+  safetyText: "Nunca abras un lector de tarjetas ni una terminal de pago. Nunca anotes ni compartas los datos de una tarjeta. Nunca compartas la contrase\u00f1a de administrador de la caja \u2014 el due\u00f1o la escribe \u00e9l mismo. Algunos problemas necesitan a tu proveedor de POS, no un atajo \u2014 esta gu\u00eda te dir\u00e1 cu\u00e1ndo parar y llamarlo.",
+  footer1: "POS Rescue \u2014 una gu\u00eda para los empleados de la tienda.",
+  footer2: "Funciona con Square, Toast, Aloha, Clover, NCR y la mayor\u00eda de los sistemas de mostrador.",
+  footer3: "Cleveland, Ohio",
+  vendorTitle: "\u00bfQu\u00e9 sistema usas?",
+  vendorOther: "Otro / general",
+  installTitle: "Guarda esta gu\u00eda en tu tel\u00e9fono",
+  installText: "iPhone: toca Compartir y luego A\u00f1adir a pantalla de inicio. Android: toca el men\u00fa y luego A\u00f1adir a pantalla de inicio. Una vez guardada, funciona aunque no haya internet \u2014 es un solo archivo.",
+  ownerTitle: "Para los due\u00f1os",
+  ownerText: "Los clientes que pagan reciben cada mes un resumen de \u201cqu\u00e9 se rompi\u00f3 y qu\u00e9 arreglamos\u201d, hecho con las llamadas a la l\u00ednea de rescate.",
+  checklistBtn: "Lista semanal de prevenci\u00f3n",
+  checklistTitle: "Lista semanal de prevenci\u00f3n",
+  checklistKicker: "Una vez por semana",
+  checklistIntro: "Una vez por semana, antes de la hora pico: cinco minutos que evitan un mal s\u00e1bado.",
+  checklistReset: "Reiniciar para la semana",
+  checklistDone: "de 6 listos",
+  backAll: "\u2190 Todas las soluciones",
+  backToAll: "Volver a todas las soluciones",
+  stepOf: "Paso {n} de {m}",
+  yesFixed: "S\u00ed \u2014 arreglado",
+  noBroken: "No \u2014 sigue sin funcionar",
+  gotNext: "Entendido \u2014 siguiente",
+  understood: "Entendido",
+  fixedTitle: "\u2705 Arreglado \u2014 la caja est\u00e1 abierta de nuevo.",
+  fixedSub: "Buen trabajo.",
+  fixedText: "Si algo m\u00e1s falla, empieza de nuevo desde la pantalla principal.",
+  escTitle: "\u00bfSigue sin funcionar? Pide ayuda de rescate.",
+  escWrite: "Antes de llamar a nadie, anota: las palabras exactas de la pantalla, a qu\u00e9 hora pas\u00f3 y qu\u00e9 caja es.",
+  escCall: "Llamar a la l\u00ednea de rescate",
+  escText: "Enviar un mensaje a la l\u00ednea de rescate",
+  escFallback: "El n\u00famero de la l\u00ednea de rescate se establece cuando se lanza el servicio. Deja una nota para el due\u00f1o con la caja, la hora y el mensaje de error exacto.",
+  escVendor: "Si la l\u00ednea de soporte de tu proveedor de POS est\u00e1 abierta, ll\u00e1malos tambi\u00e9n y l\u00e9eles el mensaje de error exacto \u2014 muchas veces pueden arreglarlo a distancia.",
+  escPromise: "Respondemos en menos de 15 minutos durante las horas publicadas de la tarde y el fin de semana.",
+  langBtn: "English"
+}
+};
+
 var GROUP_ORDER = ["Register", "Printer", "Payments", "Network", "End of day"];
+var GROUP_NAMES = {
+  en: { "Register": "Register", "Printer": "Printer", "Payments": "Payments", "Network": "Network", "End of day": "End of day" },
+  es: { "Register": "Caja registradora", "Printer": "Impresora", "Payments": "Pagos", "Network": "Red", "End of day": "Cierre del d\u00eda" }
+};
+
+var VENDORS = ["Square", "Toast", "Clover", "Aloha", "Other"];
+
+var CHECKLIST = [
+  { id:"router", text:"Restart the router \u2014 unplug it, wait 30 seconds, plug it back in.", text_es:"Reinicia el router \u2014 desench\u00fafalo, espera 30 segundos y vuelve a enchufarlo." },
+  { id:"paper", text:"Check the paper and ribbon \u2014 full roll loaded, no low-paper warning.", text_es:"Revisa el papel y la cinta \u2014 rollo completo, sin aviso de papel bajo." },
+  { id:"backup", text:"Test the backup \u2014 hotspot or spare register ready to go.", text_es:"Prueba el respaldo \u2014 el punto de acceso o la caja de repuesto listos." },
+  { id:"update", text:"Update the POS app \u2014 install any pending update before the rush.", text_es:"Actualiza la app de POS \u2014 instala cualquier actualizaci\u00f3n pendiente antes de la hora pico." },
+  { id:"drawer", text:"Check the cash drawer \u2014 opens and closes smoothly, key where it belongs.", text_es:"Revisa el caj\u00f3n de dinero \u2014 abre y cierra bien, y la llave est\u00e1 en su lugar." },
+  { id:"reader", text:"Test the card reader \u2014 charged, connected, and reading tap and chip.", text_es:"Prueba el lector de tarjetas \u2014 cargado, conectado y leyendo contacto y chip." }
+];
 
 var FLOWS = [
 { id:"boot", group:"Register", icon:"\uD83D\uDDA5\uFE0F", title:"Register won't boot / screen frozen",
+  title_es:"La caja no enciende / pantalla congelada",
   blurb:"No lights, black screen, or stuck on one screen.",
+  blurb_es:"Sin luces, pantalla negra o atascada en una pantalla.",
   steps:[
-    { kind:"fix", text:"Look for a power light on the terminal. If there is no light at all, push the power cable in firmly at the back of the terminal and where it plugs into the wall or power strip. Wait 10 seconds and look for the light." },
-    { kind:"fix", text:"Hold the power button down for a full 10 seconds until the screen goes dark. Wait 10 more seconds, then press the power button once. Give the register up to 2 minutes to load — don't tap the screen while it loads." },
-    { kind:"fix", text:"Test the outlet. Plug a phone charger into the same outlet. If the charger doesn't work, the outlet has no power — move the terminal's plug to a different outlet you know works." },
-    { kind:"stop", text:"If the screen shows an error message, write down the exact words on the screen, then stop here. An error on boot usually needs your POS vendor — don't guess at settings to clear it." }
+    { kind:"fix", text:"Look for a power light on the terminal. If there is no light at all, push the power cable in firmly at the back of the terminal and where it plugs into the wall or power strip. Wait 10 seconds and look for the light.",
+      text_es:"F\u00edjate si la terminal tiene una luz de encendido. Si no hay ninguna luz, empuja el cable de corriente firmemente por detr\u00e1s de la terminal y donde se enchufa a la pared o a la regleta. Espera 10 segundos y busca la luz." },
+    { kind:"fix", text:"Hold the power button down for a full 10 seconds until the screen goes dark. Wait 10 more seconds, then press the power button once. Give the register up to 2 minutes to load \u2014 don't tap the screen while it loads.",
+      text_es:"Mant\u00e9n presionado el bot\u00f3n de encendido durante 10 segundos completos hasta que la pantalla se apague. Espera 10 segundos m\u00e1s y luego presiona el bot\u00f3n una vez. Dale a la caja hasta 2 minutos para cargar \u2014 no toques la pantalla mientras carga." },
+    { kind:"fix", text:"Test the outlet. Plug a phone charger into the same outlet. If the charger doesn't work, the outlet has no power \u2014 move the terminal's plug to a different outlet you know works.",
+      text_es:"Prueba el enchufe. Enchufa un cargador de tel\u00e9fono en el mismo tomacorriente. Si el cargador no funciona, el enchufe no tiene corriente \u2014 mueve el cable de la terminal a otro enchufe que sepas que funciona." },
+    { kind:"stop", text:"If the screen shows an error message, write down the exact words on the screen, then stop here. An error on boot usually needs your POS vendor \u2014 don't guess at settings to clear it.",
+      text_es:"Si la pantalla muestra un mensaje de error, anota las palabras exactas de la pantalla y para aqu\u00ed. Un error al encender casi siempre necesita a tu proveedor de POS \u2014 no adivines la configuraci\u00f3n para borrarlo." }
   ]},
 { id:"frozen", group:"Register", icon:"\u2744\uFE0F", title:"Software frozen mid-transaction",
+  title_es:"El programa se congel\u00f3 en medio de una venta",
   blurb:"Screen stuck during a sale.",
+  blurb_es:"La pantalla se qued\u00f3 atascada durante una venta.",
   steps:[
-    { kind:"fix", text:"Wait 30 seconds and don't tap anything. A frozen screen sometimes finishes on its own." },
-    { kind:"fix", text:"Restart the register. Hold the power button down for 10 seconds until it goes dark, wait 10 seconds, then press it once. Give it up to 2 minutes to load." },
-    { kind:"fix", text:"When it comes back, check the sale before ringing it again. Look at the last transaction or order list. If the sale went through, don't ring it twice — if you're not sure, ask the customer to check their bank app, or reprint the last receipt." },
-    { kind:"stop", text:"If it freezes again on the same screen or the same item, write down exactly what you tapped when it froze. That's a software fault — it needs your POS vendor, not another restart." }
+    { kind:"fix", text:"Wait 30 seconds and don't tap anything. A frozen screen sometimes finishes on its own.",
+      text_es:"Espera 30 segundos y no toques nada. Una pantalla congelada a veces termina sola." },
+    { kind:"fix", text:"Restart the register. Hold the power button down for 10 seconds until it goes dark, wait 10 seconds, then press it once. Give it up to 2 minutes to load.",
+      text_es:"Reinicia la caja. Mant\u00e9n presionado el bot\u00f3n de encendido 10 segundos hasta que se apague, espera 10 segundos y luego presi\u00f3nalo una vez. Dale hasta 2 minutos para cargar." },
+    { kind:"fix", text:"When it comes back, check the sale before ringing it again. Look at the last transaction or order list. If the sale went through, don't ring it twice \u2014 if you're not sure, ask the customer to check their bank app, or reprint the last receipt.",
+      text_es:"Cuando vuelva, revisa la venta antes de cobrarla de nuevo. Mira la \u00faltima transacci\u00f3n o la lista de pedidos. Si la venta ya pas\u00f3, no la cobres dos veces \u2014 si no est\u00e1s seguro, p\u00eddele al cliente que revise su app del banco o reimprime el \u00faltimo recibo." },
+    { kind:"stop", text:"If it freezes again on the same screen or the same item, write down exactly what you tapped when it froze. That's a software fault \u2014 it needs your POS vendor, not another restart.",
+      text_es:"Si se congela otra vez en la misma pantalla o con el mismo art\u00edculo, anota exactamente qu\u00e9 tocaste cuando se congel\u00f3. Eso es un fallo del programa \u2014 lo necesita tu proveedor de POS, no otro reinicio." }
   ]},
 { id:"drawer", group:"Register", icon:"\uD83D\uDCB5", title:"Cash drawer won't open",
+  title_es:"El caj\u00f3n de dinero no abre",
   blurb:"Drawer stays shut after a sale.",
+  blurb_es:"El caj\u00f3n no se abre despu\u00e9s de una venta.",
   steps:[
-    { kind:"fix", text:"Check the drawer cable — the drawer usually opens through the receipt printer. Push the cable in firmly at the drawer and at the printer." },
-    { kind:"fix", text:"Open it with the key. Every drawer has a manual key — it's usually kept in the safe or the office. Turn the key and the drawer pops open. Count the cash as normal and keep trading." },
-    { kind:"fix", text:"Check the printer is on. A drawer that fires through the printer won't open if the printer is off or unplugged. Turn the printer on and try a sale." },
-    { kind:"stop", text:"If the drawer is locked, the key is missing, and the printer is on, stop. Don't force the drawer open — you'll break the lock and the drawer." }
+    { kind:"fix", text:"Check the drawer cable \u2014 the drawer usually opens through the receipt printer. Push the cable in firmly at the drawer and at the printer.",
+      text_es:"Revisa el cable del caj\u00f3n \u2014 el caj\u00f3n normalmente se abre a trav\u00e9s de la impresora de recibos. Empuja el cable firmemente en el caj\u00f3n y en la impresora." },
+    { kind:"fix", text:"Open it with the key. Every drawer has a manual key \u2014 it's usually kept in the safe or the office. Turn the key and the drawer pops open. Count the cash as normal and keep trading.",
+      text_es:"\u00c1brelo con la llave. Cada caj\u00f3n tiene una llave manual \u2014 normalmente est\u00e1 en la caja fuerte o en la oficina. Gira la llave y el caj\u00f3n se abre. Cuenta el dinero como siempre y sigue trabajando." },
+    { kind:"fix", text:"Check the printer is on. A drawer that fires through the printer won't open if the printer is off or unplugged. Turn the printer on and try a sale.",
+      text_es:"Revisa que la impresora est\u00e9 encendida. Un caj\u00f3n que se dispara desde la impresora no se abrir\u00e1 si la impresora est\u00e1 apagada o desenchufada. Enciende la impresora e intenta una venta." },
+    { kind:"stop", text:"If the drawer is locked, the key is missing, and the printer is on, stop. Don't force the drawer open \u2014 you'll break the lock and the drawer.",
+      text_es:"Si el caj\u00f3n est\u00e1 cerrado con llave, no tienes la llave y la impresora est\u00e1 encendida, para. No fuerces el caj\u00f3n \u2014 romper\u00e1s la cerradura y el caj\u00f3n." }
   ]},
 { id:"scanner", group:"Register", icon:"\uD83D\uDCE6", title:"Barcode scanner not scanning",
+  title_es:"El esc\u00e1ner de c\u00f3digos no lee",
   blurb:"No beep, no read, or nothing appears on screen.",
+  blurb_es:"No suena, no lee o no aparece nada en la pantalla.",
   steps:[
-    { kind:"fix", text:"Check the scanner has power. Look for its light or listen for a beep when you pull the trigger. If there's nothing, push the cable in firmly at both ends — or, on a wireless scanner, put it on its charger for a few minutes." },
-    { kind:"fix", text:"Try a clean barcode. Scan an item with a crisp, undamaged label. If that one reads, the first item's barcode was damaged — type the numbers under the barcode in by hand." },
-    { kind:"fix", text:"Wipe the scanner window with a dry, soft cloth. Dust and smudges block the beam." },
-    { kind:"fix", text:"Unplug the scanner's USB cable, wait 10 seconds, and plug it back in. Wait a few seconds for the register to recognise it, then try scanning again." }
+    { kind:"fix", text:"Check the scanner has power. Look for its light or listen for a beep when you pull the trigger. If there's nothing, push the cable in firmly at both ends \u2014 or, on a wireless scanner, put it on its charger for a few minutes.",
+      text_es:"Revisa que el esc\u00e1ner tenga corriente. Busca su luz o escucha el sonido cuando aprietas el gatillo. Si no hay nada, empuja el cable firmemente en ambos extremos \u2014 o, si es inal\u00e1mbrico, ponlo en su cargador unos minutos." },
+    { kind:"fix", text:"Try a clean barcode. Scan an item with a crisp, undamaged label. If that one reads, the first item's barcode was damaged \u2014 type the numbers under the barcode in by hand.",
+      text_es:"Prueba un c\u00f3digo limpio. Escanea un art\u00edculo con una etiqueta clara y sin da\u00f1os. Si ese s\u00ed lee, el c\u00f3digo del primer art\u00edculo estaba da\u00f1ado \u2014 escribe a mano los n\u00fameros que est\u00e1n debajo del c\u00f3digo." },
+    { kind:"fix", text:"Wipe the scanner window with a dry, soft cloth. Dust and smudges block the beam.",
+      text_es:"Limpia la ventanilla del esc\u00e1ner con un pa\u00f1o suave y seco. El polvo y las manchas bloquean el rayo." },
+    { kind:"fix", text:"Unplug the scanner's USB cable, wait 10 seconds, and plug it back in. Wait a few seconds for the register to recognise it, then try scanning again.",
+      text_es:"Desenchufa el cable USB del esc\u00e1ner, espera 10 segundos y vuelve a enchufarlo. Espera unos segundos a que la caja lo reconozca y prueba de nuevo." }
   ]},
 { id:"printer", group:"Printer", icon:"\uD83D\uDDA8\uFE0F", title:"Receipt printer won't print / jammed",
+  title_es:"La impresora de recibos no imprime / est\u00e1 atascada",
   blurb:"Nothing prints, or paper is stuck.",
+  blurb_es:"No sale nada o el papel est\u00e1 atascado.",
   steps:[
-    { kind:"fix", text:"Open the printer cover and look at the paper roll. If it's empty or nearly empty, put in a new roll so the paper feeds from the bottom of the roll, shiny side up. Close the cover firmly until it clicks." },
-    { kind:"fix", text:"Check the printer is on and plugged in — look for its power light, and push the cable in firmly at the printer and at the register or wall." },
-    { kind:"fix", text:"Clear the jam. Open the cover, lift the roll out, and gently pull out any torn paper. Don't yank it. Put the roll back, close the cover, then reprint the last receipt from the register." },
-    { kind:"stop", text:"If the printer grinds, clicks, or jams again right away, stop — don't force the cover or pull harder. It needs hands-on help." }
+    { kind:"fix", text:"Open the printer cover and look at the paper roll. If it's empty or nearly empty, put in a new roll so the paper feeds from the bottom of the roll, shiny side up. Close the cover firmly until it clicks.",
+      text_es:"Abre la tapa de la impresora y mira el rollo de papel. Si est\u00e1 vac\u00edo o casi vac\u00edo, pon un rollo nuevo con el papel saliendo desde abajo del rollo, con el lado brillante hacia arriba. Cierra la tapa firmemente hasta que haga clic." },
+    { kind:"fix", text:"Check the printer is on and plugged in \u2014 look for its power light, and push the cable in firmly at the printer and at the register or wall.",
+      text_es:"Revisa que la impresora est\u00e9 encendida y enchufada \u2014 busca su luz de encendido y empuja el cable firmemente en la impresora y en la caja o la pared." },
+    { kind:"fix", text:"Clear the jam. Open the cover, lift the roll out, and gently pull out any torn paper. Don't yank it. Put the roll back, close the cover, then reprint the last receipt from the register.",
+      text_es:"Quita el atasco. Abre la tapa, saca el rollo y retira con cuidado cualquier papel roto. No lo jales fuerte. Vuelve a poner el rollo, cierra la tapa y reimprime el \u00faltimo recibo desde la caja." },
+    { kind:"stop", text:"If the printer grinds, clicks, or jams again right away, stop \u2014 don't force the cover or pull harder. It needs hands-on help.",
+      text_es:"Si la impresora hace ruidos, chasquidos o se atasca otra vez de inmediato, para \u2014 no fuerces la tapa ni jales m\u00e1s fuerte. Necesita ayuda en persona." }
   ]},
 { id:"reader", group:"Payments", icon:"\uD83D\uDCB3", title:"Card reader offline / chip & tap not working",
+  title_es:"El lector de tarjetas est\u00e1 sin conexi\u00f3n / no acepta chip ni contacto",
   blurb:"Reader shows offline, or won't take cards.",
+  blurb_es:"El lector muestra sin conexi\u00f3n o no acepta tarjetas.",
   steps:[
-    { kind:"fix", text:"Look at the reader's screen. If it says offline or shows no signal, move the reader closer to the register or router and wait 30 seconds for it to reconnect." },
-    { kind:"fix", text:"Restart the reader. Hold its power button until it turns off, wait 10 seconds, then turn it back on. Give it up to a minute to reconnect." },
-    { kind:"fix", text:"Try a different card and a different method — chip instead of tap, or tap instead of chip. If one card fails and another works, it's that customer's card, not your reader. Ask them to try another card or another way to pay." },
-    { kind:"stop", text:"If the reader still won't take any card on any method, stop. Don't put anything into the chip slot and don't try to take the reader apart. It needs hands-on help." }
+    { kind:"fix", text:"Look at the reader's screen. If it says offline or shows no signal, move the reader closer to the register or router and wait 30 seconds for it to reconnect.",
+      text_es:"Mira la pantalla del lector. Si dice sin conexi\u00f3n o no muestra se\u00f1al, acerca el lector a la caja o al router y espera 30 segundos a que se vuelva a conectar." },
+    { kind:"fix", text:"Restart the reader. Hold its power button until it turns off, wait 10 seconds, then turn it back on. Give it up to a minute to reconnect.",
+      text_es:"Reinicia el lector. Mant\u00e9n presionado su bot\u00f3n de encendido hasta que se apague, espera 10 segundos y vuelve a encenderlo. Dale hasta un minuto para reconectarse." },
+    { kind:"fix", text:"Try a different card and a different method \u2014 chip instead of tap, or tap instead of chip. If one card fails and another works, it's that customer's card, not your reader. Ask them to try another card or another way to pay.",
+      text_es:"Prueba otra tarjeta y otro m\u00e9todo \u2014 chip en vez de contacto, o contacto en vez de chip. Si una tarjeta falla y otra funciona, es la tarjeta del cliente, no tu lector. P\u00eddele que pruebe otra tarjeta u otra forma de pago." },
+    { kind:"stop", text:"If the reader still won't take any card on any method, stop. Don't put anything into the chip slot and don't try to take the reader apart. It needs hands-on help.",
+      text_es:"Si el lector sigue sin aceptar ninguna tarjeta por ning\u00fan m\u00e9todo, para. No metas nada en la ranura del chip ni trates de desarmar el lector. Necesita ayuda en persona." }
   ]},
 { id:"emv", group:"Payments", icon:"\uD83D\uDCB3", title:"Chip declines / card won't go through",
+  title_es:"El chip se rechaza / la tarjeta no pasa",
   blurb:"Cards keep declining and it's not the customer.",
+  blurb_es:"Las tarjetas se rechazan y no es culpa del cliente.",
   steps:[
-    { kind:"fix", text:"Try the chip again — push the card in firmly and leave it in until the reader tells you to remove it. Pulling it out early is the most common reason a chip fails." },
-    { kind:"fix", text:"Try tap, then swipe. If tap works but chip doesn't, keep trading on tap and note that the chip slot is acting up. If swipe works but chip and tap don't, keep trading on swipe." },
-    { kind:"fix", text:"Try a different card. If the second card works, the problem is the first customer's card — a bank block, an expired card, or a damaged chip. Politely ask for another way to pay." },
-    { kind:"stop", text:"If every card fails on every method, the reader or the payment connection is down — run the card reader flow. If that doesn't fix it, stop here. Never copy a customer's card details onto paper or take them by hand." }
+    { kind:"fix", text:"Try the chip again \u2014 push the card in firmly and leave it in until the reader tells you to remove it. Pulling it out early is the most common reason a chip fails.",
+      text_es:"Prueba el chip otra vez \u2014 mete la tarjeta firmemente y d\u00e9jala puesta hasta que el lector te diga que la saques. Sacarla antes de tiempo es la raz\u00f3n m\u00e1s com\u00fan de que falle el chip." },
+    { kind:"fix", text:"Try tap, then swipe. If tap works but chip doesn't, keep trading on tap and note that the chip slot is acting up. If swipe works but chip and tap don't, keep trading on swipe.",
+      text_es:"Prueba el contacto y luego la banda. Si el contacto funciona pero el chip no, sigue cobrando con contacto y anota que la ranura del chip est\u00e1 fallando. Si la banda funciona pero el chip y el contacto no, sigue cobrando con banda." },
+    { kind:"fix", text:"Try a different card. If the second card works, the problem is the first customer's card \u2014 a bank block, an expired card, or a damaged chip. Politely ask for another way to pay.",
+      text_es:"Prueba otra tarjeta. Si la segunda tarjeta funciona, el problema es la tarjeta del primer cliente \u2014 un bloqueo del banco, una tarjeta vencida o un chip da\u00f1ado. P\u00eddele amablemente otra forma de pago." },
+    { kind:"stop", text:"If every card fails on every method, the reader or the payment connection is down \u2014 run the card reader flow. If that doesn't fix it, stop here. Never copy a customer's card details onto paper or take them by hand.",
+      text_es:"Si todas las tarjetas fallan por todos los m\u00e9todos, el lector o la conexi\u00f3n de pago est\u00e1 ca\u00edda \u2014 sigue el flujo del lector de tarjetas. Si eso no lo arregla, para aqu\u00ed. Nunca copies los datos de la tarjeta de un cliente en papel ni los tomes a mano." }
   ]},
 { id:"network", group:"Network", icon:"\uD83D\uDCF6", title:"POS offline / no network",
+  title_es:"POS sin conexi\u00f3n / sin red",
   blurb:"Register says offline or no internet.",
+  blurb_es:"La caja dice sin conexi\u00f3n o sin internet.",
   steps:[
-    { kind:"fix", text:"Read what the screen says. If it says offline mode, the register can usually still take cash and keep recording sales — keep trading and keep going with these steps." },
-    { kind:"fix", text:"Check the connection. If the register uses a network cable, push it in firmly at the register and at the wall jack until it clicks. If it uses Wi-Fi, check the register is on the store's own network name — not a guest network or a neighbour's." },
-    { kind:"fix", text:"Restart the router. Unplug the router — the box with the blinking lights — wait a full 30 seconds, plug it back in, and wait 2 minutes for the lights to go steady. Then check the register." },
-    { kind:"fix", text:"Check if anything else in the store is online — a phone on the store Wi-Fi, or another register. If nothing is online, the internet itself is down: call your internet provider and tell them the whole store is offline. If other devices are online and only this register is down, it needs hands-on help." }
+    { kind:"fix", text:"Read what the screen says. If it says offline mode, the register can usually still take cash and keep recording sales \u2014 keep trading and keep going with these steps.",
+      text_es:"Lee lo que dice la pantalla. Si dice modo sin conexi\u00f3n, la caja normalmente puede seguir cobrando en efectivo y registrando ventas \u2014 sigue trabajando y sigue con estos pasos." },
+    { kind:"fix", text:"Check the connection. If the register uses a network cable, push it in firmly at the register and at the wall jack until it clicks. If it uses Wi-Fi, check the register is on the store's own network name \u2014 not a guest network or a neighbour's.",
+      text_es:"Revisa la conexi\u00f3n. Si la caja usa un cable de red, emp\u00fajalo firmemente en la caja y en el enchufe de la pared hasta que haga clic. Si usa Wi-Fi, revisa que la caja est\u00e9 en la red de la tienda \u2014 no en la red de invitados ni en la del vecino." },
+    { kind:"fix", text:"Restart the router. Unplug the router \u2014 the box with the blinking lights \u2014 wait a full 30 seconds, plug it back in, and wait 2 minutes for the lights to go steady. Then check the register.",
+      text_es:"Reinicia el router. Desenchufa el router \u2014 la caja con las luces parpadeantes \u2014 espera 30 segundos completos, vuelve a enchufarlo y espera 2 minutos a que las luces se queden fijas. Luego revisa la caja." },
+    { kind:"fix", text:"Check if anything else in the store is online \u2014 a phone on the store Wi-Fi, or another register. If nothing is online, the internet itself is down: call your internet provider and tell them the whole store is offline. If other devices are online and only this register is down, it needs hands-on help.",
+      text_es:"Revisa si algo m\u00e1s en la tienda est\u00e1 en l\u00ednea \u2014 un tel\u00e9fono en el Wi-Fi de la tienda u otra caja. Si nada est\u00e1 en l\u00ednea, el internet mismo est\u00e1 ca\u00eddo: llama a tu proveedor de internet y diles que toda la tienda est\u00e1 sin conexi\u00f3n. Si otros aparatos est\u00e1n en l\u00ednea y solo esta caja est\u00e1 ca\u00edda, necesita ayuda en persona." }
   ]},
 { id:"batch", group:"End of day", icon:"\uD83C\uDF19", title:"End-of-day batch won't settle",
+  title_es:"El cierre del d\u00eda no se liquida",
   blurb:"Batch stuck, won't close out.",
+  blurb_es:"El lote est\u00e1 atascado, no cierra.",
   steps:[
-    { kind:"fix", text:"Check the internet first. Settling the batch needs a connection. If the register shows offline, run the Network flow, then try settling again." },
-    { kind:"fix", text:"Read the message on the batch screen and check the time. Some systems won't settle before a cutoff or after midnight. If it says to try again later, wait 15 minutes and try once more." },
-    { kind:"fix", text:"Look for one stuck sale. The batch screen usually names a failed or pending transaction. Write down its amount and time, then try settling again. Don't delete or void it just to force the batch through." },
-    { kind:"stop", text:"If it still won't settle, write down the batch total and the exact error message, and leave the register on. Don't turn it off overnight with a batch unsettled — it needs help." }
+    { kind:"fix", text:"Check the internet first. Settling the batch needs a connection. If the register shows offline, run the Network flow, then try settling again.",
+      text_es:"Revisa el internet primero. Liquidar el lote necesita conexi\u00f3n. Si la caja muestra sin conexi\u00f3n, sigue el flujo de Red y luego intenta liquidar de nuevo." },
+    { kind:"fix", text:"Read the message on the batch screen and check the time. Some systems won't settle before a cutoff or after midnight. If it says to try again later, wait 15 minutes and try once more.",
+      text_es:"Lee el mensaje en la pantalla del lote y revisa la hora. Algunos sistemas no liquidan antes de una hora l\u00edmite o despu\u00e9s de la medianoche. Si dice que lo intentes m\u00e1s tarde, espera 15 minutos e intenta una vez m\u00e1s.",
+      v:{ "Square":"Read the message on the batch screen and check the time. In Square, batches settle from the app \u2014 some won't settle before a cutoff or after midnight. If it says to try again later, wait 15 minutes and try once more.",
+          "Toast":"Toast usually settles the batch on its own overnight. If the screen says to try again later, wait 15 minutes and check again.",
+          "Clover":"In Clover, batches settle from the Register app \u2014 if it says to try again later, wait 15 minutes and try once more.",
+          "Aloha":"In Aloha, batches settle at the end of day \u2014 if it says to try again later, wait 15 minutes and try once more." },
+      v_es:{ "Square":"Lee el mensaje en la pantalla del lote y revisa la hora. En Square, los lotes se liquidan desde la app \u2014 algunos no liquidan antes de una hora l\u00edmite o despu\u00e9s de la medianoche. Si dice que lo intentes m\u00e1s tarde, espera 15 minutos e intenta una vez m\u00e1s.",
+          "Toast":"Toast normalmente liquida el lote solo durante la noche. Si la pantalla dice que lo intentes m\u00e1s tarde, espera 15 minutos y revisa de nuevo.",
+          "Clover":"En Clover, los lotes se liquidan desde la app de Caja \u2014 si dice que lo intentes m\u00e1s tarde, espera 15 minutos e intenta una vez m\u00e1s.",
+          "Aloha":"En Aloha, los lotes se liquidan al final del d\u00eda \u2014 si dice que lo intentes m\u00e1s tarde, espera 15 minutos e intenta una vez m\u00e1s." } },
+    { kind:"fix", text:"Look for one stuck sale. The batch screen usually names a failed or pending transaction. Write down its amount and time, then try settling again. Don't delete or void it just to force the batch through.",
+      text_es:"Busca una venta atorada. La pantalla del lote normalmente nombra una transacci\u00f3n fallida o pendiente. Anota su monto y su hora, y luego intenta liquidar de nuevo. No la borres ni la anules solo para forzar el lote." },
+    { kind:"stop", text:"If it still won't settle, write down the batch total and the exact error message, and leave the register on. Don't turn it off overnight with a batch unsettled \u2014 it needs help.",
+      text_es:"Si sigue sin liquidar, anota el total del lote y el mensaje de error exacto, y deja la caja encendida. No la apagues durante la noche con un lote sin liquidar \u2014 necesita ayuda." }
   ]},
 { id:"basics", group:"End of day", icon:"\uD83D\uDCDD", title:"New-clerk basics: voids, refunds, reprints, shift close",
+  title_es:"Lo b\u00e1sico para empleados nuevos: anulaciones, reembolsos, reimpresiones, cierre de turno",
   blurb:"The everyday jobs, step by step.",
+  blurb_es:"Los trabajos de todos los d\u00edas, paso a paso.",
   steps:[
-    { kind:"info", text:"Void a sale before it's paid: find the sale on the screen, choose Void, and confirm. If the customer already paid, you need a refund instead — that's the next step." },
-    { kind:"info", text:"Refund a paid sale: find the sale in history, choose Refund, and follow the prompts. The money goes back to the same card. Never hand cash back for a card sale unless the owner tells you to." },
-    { kind:"info", text:"Reprint a receipt: find the sale in history and choose Reprint. If the printer is empty, load paper first — see the printer flow." },
-    { kind:"info", text:"Close your shift: count the cash drawer, enter the count when the register asks, and print the shift report. If your count doesn't match, count again once. If it still doesn't match, write down both numbers and tell the owner — don't change the numbers to make them match." }
+    { kind:"info", text:"Void a sale before it's paid: find the sale on the screen, choose Void, and confirm. If the customer already paid, you need a refund instead \u2014 that's the next step.",
+      text_es:"Anula una venta antes de que se pague: busca la venta en la pantalla, elige Anular y confirma. Si el cliente ya pag\u00f3, necesitas un reembolso \u2014 eso es el siguiente paso.",
+      v:{ "Square":"Void a sale before it's paid: in Square, tap the current sale, choose the item, and tap Void.",
+          "Toast":"Void a sale before it's paid: in Toast, find the check on the order screen, tap the item, and choose Void.",
+          "Clover":"Void a sale before it's paid: in Clover, open the Register app, tap the current sale, and choose Void.",
+          "Aloha":"Void a sale before it's paid: in Aloha, find the check, tap Functions, and choose Void Item." },
+      v_es:{ "Square":"Anula una venta antes de que se pague: en Square, toca la venta actual, elige el art\u00edculo y toca Anular.",
+          "Toast":"Anula una venta antes de que se pague: en Toast, busca el pedido en la pantalla de pedidos, toca el art\u00edculo y elige Anular.",
+          "Clover":"Anula una venta antes de que se pague: en Clover, abre la app de Caja, toca la venta actual y elige Anular.",
+          "Aloha":"Anula una venta antes de que se pague: en Aloha, busca el pedido, toca Funciones y elige Anular art\u00edculo." } },
+    { kind:"info", text:"Refund a paid sale: find the sale in history, choose Refund, and follow the prompts. The money goes back to the same card. Never hand cash back for a card sale unless the owner tells you to.",
+      text_es:"Reembolsa una venta pagada: busca la venta en el historial, elige Reembolso y sigue las indicaciones. El dinero vuelve a la misma tarjeta. Nunca devuelvas efectivo por una venta con tarjeta a menos que el due\u00f1o te lo diga.",
+      v:{ "Square":"Refund a paid sale: in Square, find the sale in Transactions, choose Refund, and follow the prompts.",
+          "Toast":"Refund a paid sale: in Toast, find the order in the Orders screen, tap it, and choose Refund.",
+          "Clover":"Refund a paid sale: in Clover, find the sale in the Register app history and choose Refund.",
+          "Aloha":"Refund a paid sale: in Aloha, find the check in history and choose Refund from the Functions menu." },
+      v_es:{ "Square":"Reembolsa una venta pagada: en Square, busca la venta en Transacciones, elige Reembolso y sigue las indicaciones.",
+          "Toast":"Reembolsa una venta pagada: en Toast, busca el pedido en la pantalla de Pedidos, t\u00f3calo y elige Reembolso.",
+          "Clover":"Reembolsa una venta pagada: en Clover, busca la venta en el historial de la app de Caja y elige Reembolso.",
+          "Aloha":"Reembolsa una venta pagada: en Aloha, busca el pedido en el historial y elige Reembolso en el men\u00fa de Funciones." } },
+    { kind:"info", text:"Reprint a receipt: find the sale in history and choose Reprint. If the printer is empty, load paper first \u2014 see the printer flow.",
+      text_es:"Reimprime un recibo: busca la venta en el historial y elige Reimprimir. Si la impresora est\u00e1 vac\u00eda, carga papel primero \u2014 mira el flujo de la impresora.",
+      v:{ "Square":"Reprint a receipt: in Square, find the sale in Transactions and choose Reprint Receipt.",
+          "Toast":"Reprint a receipt: in Toast, find the order and tap Reprint.",
+          "Clover":"Reprint a receipt: in Clover, find the sale in the Register app and choose Reprint.",
+          "Aloha":"Reprint a receipt: in Aloha, find the check and choose Reprint from the Functions menu." },
+      v_es:{ "Square":"Reimprime un recibo: en Square, busca la venta en Transacciones y elige Reimprimir recibo.",
+          "Toast":"Reimprime un recibo: en Toast, busca el pedido y toca Reimprimir.",
+          "Clover":"Reimprime un recibo: en Clover, busca la venta en la app de Caja y elige Reimprimir.",
+          "Aloha":"Reimprime un recibo: en Aloha, busca el pedido y elige Reimprimir en el men\u00fa de Funciones." } },
+    { kind:"info", text:"Close your shift: count the cash drawer, enter the count when the register asks, and print the shift report. If your count doesn't match, count again once. If it still doesn't match, write down both numbers and tell the owner \u2014 don't change the numbers to make them match.",
+      text_es:"Cierra tu turno: cuenta el dinero del caj\u00f3n, escribe el conteo cuando la caja lo pida e imprime el reporte del turno. Si tu conteo no coincide, cuenta otra vez. Si sigue sin coincidir, anota ambos n\u00fameros y d\u00edselo al due\u00f1o \u2014 no cambies los n\u00fameros para que coincidan.",
+      v:{ "Square":"Close your shift: in Square, count the cash drawer, enter the count in Cash Management, and print the shift report.",
+          "Toast":"Close your shift: in Toast, count the cash drawer and enter the count when the end-of-day screen asks.",
+          "Clover":"Close your shift: in Clover, count the cash drawer and enter the count in the Register app when it asks.",
+          "Aloha":"Close your shift: in Aloha, count the cash drawer and enter the count at the end-of-day prompt." },
+      v_es:{ "Square":"Cierra tu turno: en Square, cuenta el dinero del caj\u00f3n, escribe el conteo en Administraci\u00f3n de efectivo e imprime el reporte del turno.",
+          "Toast":"Cierra tu turno: en Toast, cuenta el dinero del caj\u00f3n y escribe el conteo cuando la pantalla de fin de d\u00eda lo pida.",
+          "Clover":"Cierra tu turno: en Clover, cuenta el dinero del caj\u00f3n y escribe el conteo en la app de Caja cuando lo pida.",
+          "Aloha":"Cierra tu turno: en Aloha, cuenta el dinero del caj\u00f3n y escribe el conteo cuando lo pida el cierre del d\u00eda." } }
+  ]},
+{ id:"kds", group:"Printer", icon:"\uD83C\uDF73", title:"Kitchen display down / tickets not reaching the kitchen",
+  title_es:"La pantalla de cocina no muestra pedidos / los pedidos no llegan a la cocina",
+  blurb:"Orders ring up but the kitchen sees nothing.",
+  blurb_es:"Los pedidos se cobran pero la cocina no ve nada.",
+  steps:[
+    { kind:"fix", text:"Check the kitchen screen is on. Look at the screen in the kitchen \u2014 if it's dark, push its power cable in firmly and press its power button. Wait 30 seconds for it to wake up.",
+      text_es:"Revisa que la pantalla de cocina est\u00e9 encendida. Busca la pantalla en la cocina \u2014 si est\u00e1 apagada, empuja su cable de corriente firmemente y presiona su bot\u00f3n de encendido. Espera 30 segundos a que despierte." },
+    { kind:"fix", text:"Check the screen is on the right station. The kitchen screen should show today's orders. If it shows a logo or a setup screen, it lost its connection \u2014 restart the screen: hold its power button until it goes dark, wait 10 seconds, and turn it back on.",
+      text_es:"Revisa que la pantalla est\u00e9 en la estaci\u00f3n correcta. La pantalla de cocina debe mostrar los pedidos de hoy. Si muestra un logo o una pantalla de configuraci\u00f3n, perdi\u00f3 su conexi\u00f3n \u2014 reinicia la pantalla: mant\u00e9n presionado su bot\u00f3n de encendido hasta que se apague, espera 10 segundos y vuelve a encenderla.",
+      v:{ "Toast":"On Toast, the kitchen display (KDS) should show today's orders for its prep station. If it shows a logo or a setup screen, it lost its connection \u2014 restart the screen: hold its power button until it goes dark, wait 10 seconds, and turn it back on.",
+          "Square":"On Square, the kitchen display should show today's orders. If it shows a logo or a setup screen, it lost its connection \u2014 restart the screen: hold its power button until it goes dark, wait 10 seconds, and turn it back on.",
+          "Clover":"On Clover, the kitchen display should show today's orders. If it shows a logo or a setup screen, it lost its connection \u2014 restart the screen: hold its power button until it goes dark, wait 10 seconds, and turn it back on." },
+      v_es:{ "Toast":"En Toast, la pantalla de cocina (KDS) debe mostrar los pedidos de hoy para su estaci\u00f3n de preparaci\u00f3n. Si muestra un logo o una pantalla de configuraci\u00f3n, perdi\u00f3 su conexi\u00f3n \u2014 reinicia la pantalla: mant\u00e9n presionado su bot\u00f3n de encendido hasta que se apague, espera 10 segundos y vuelve a encenderla.",
+          "Square":"En Square, la pantalla de cocina debe mostrar los pedidos de hoy. Si muestra un logo o una pantalla de configuraci\u00f3n, perdi\u00f3 su conexi\u00f3n \u2014 reinicia la pantalla: mant\u00e9n presionado su bot\u00f3n de encendido hasta que se apague, espera 10 segundos y vuelve a encenderla.",
+          "Clover":"En Clover, la pantalla de cocina debe mostrar los pedidos de hoy. Si muestra un logo o una pantalla de configuraci\u00f3n, perdi\u00f3 su conexi\u00f3n \u2014 reinicia la pantalla: mant\u00e9n presionado su bot\u00f3n de encendido hasta que se apague, espera 10 segundos y vuelve a encenderla." } },
+    { kind:"fix", text:"Send a test order. Ring up a single cheap item \u2014 a water or a side \u2014 and see if it appears on the kitchen screen. If it appears, the connection is back: tell the kitchen to expect the real orders now. If it doesn't appear, write down the time of the last order the kitchen did see.",
+      text_es:"Env\u00eda un pedido de prueba. Cobra un solo art\u00edculo barato \u2014 un agua o un acompa\u00f1amiento \u2014 y mira si aparece en la pantalla de cocina. Si aparece, la conexi\u00f3n volvi\u00f3: av\u00edsale a la cocina que los pedidos reales vienen ahora. Si no aparece, anota la hora del \u00faltimo pedido que s\u00ed vio la cocina." },
+    { kind:"stop", text:"If the kitchen screen stays dark or still shows nothing after a restart, stop. Don't change network or screen settings to force it \u2014 the screen or its connection needs hands-on help.",
+      text_es:"Si la pantalla de cocina sigue apagada o sigue sin mostrar nada despu\u00e9s de reiniciarla, para. No cambies la configuraci\u00f3n de la red ni de la pantalla para forzarla \u2014 la pantalla o su conexi\u00f3n necesita ayuda en persona." }
+  ]},
+{ id:"online", group:"Network", icon:"\uD83D\uDECD\uFE0F", title:"Online orders not coming through",
+  title_es:"Los pedidos en l\u00ednea no llegan",
+  blurb:"Delivery apps are quiet, but the store is open.",
+  blurb_es:"Las apps de entrega est\u00e1n en silencio, pero la tienda est\u00e1 abierta.",
+  steps:[
+    { kind:"fix", text:"Check the ordering tablet is on and charged. Look at the tablet that takes online orders \u2014 if the screen is dark, plug it in and press the power button. Give it a minute to wake up and reconnect.",
+      text_es:"Revisa que la tableta de pedidos est\u00e9 encendida y cargada. Mira la tableta que recibe los pedidos en l\u00ednea \u2014 si la pantalla est\u00e1 apagada, ench\u00fafala y presiona el bot\u00f3n de encendido. Dale un minuto para despertar y reconectarse." },
+    { kind:"fix", text:"Check the tablet is connected. If it shows no internet or offline, move it closer to the router and wait 30 seconds. If it still shows offline, restart the router: unplug it, wait 30 seconds, plug it back in, and wait 2 minutes.",
+      text_es:"Revisa que la tableta est\u00e9 conectada. Si muestra sin internet o sin conexi\u00f3n, ac\u00e9rcala al router y espera 30 segundos. Si sigue sin conexi\u00f3n, reinicia el router: desench\u00fafalo, espera 30 segundos, vuelve a enchufarlo y espera 2 minutos." },
+    { kind:"fix", text:"Check the store is marked open in the delivery app. Open the tablet's app and look at the store status \u2014 if it says paused or closed, switch it back to open. If a new order appears right after, the connection is back.",
+      text_es:"Revisa que la tienda est\u00e9 marcada como abierta en la app de entrega. Abre la app en la tableta y mira el estado de la tienda \u2014 si dice en pausa o cerrada, c\u00e1mbialo a abierta. Si aparece un pedido nuevo justo despu\u00e9s, la conexi\u00f3n volvi\u00f3.",
+      v:{ "Toast":"Check the restaurant is marked open in Toast Online Ordering. Open the app on the tablet and look at the store status \u2014 if it says paused or closed, switch it back to open. If a new order appears right after, the connection is back.",
+          "Square":"Check the store is marked open in Square Online. Open the app on the tablet and look at the store status \u2014 if it says paused or closed, switch it back to open. If a new order appears right after, the connection is back.",
+          "Clover":"Check the store is marked open in Clover Online Ordering. Open the app on the tablet and look at the store status \u2014 if it says paused or closed, switch it back to open. If a new order appears right after, the connection is back." },
+      v_es:{ "Toast":"Revisa que el restaurante est\u00e9 marcado como abierto en Toast Online Ordering. Abre la app en la tableta y mira el estado \u2014 si dice en pausa o cerrado, c\u00e1mbialo a abierto. Si aparece un pedido nuevo justo despu\u00e9s, la conexi\u00f3n volvi\u00f3.",
+          "Square":"Revisa que la tienda est\u00e9 marcada como abierta en Square Online. Abre la app en la tableta y mira el estado \u2014 si dice en pausa o cerrada, c\u00e1mbiala a abierta. Si aparece un pedido nuevo justo despu\u00e9s, la conexi\u00f3n volvi\u00f3.",
+          "Clover":"Revisa que la tienda est\u00e9 marcada como abierta en Clover Online Ordering. Abre la app en la tableta y mira el estado \u2014 si dice en pausa o cerrada, c\u00e1mbiala a abierta. Si aparece un pedido nuevo justo despu\u00e9s, la conexi\u00f3n volvi\u00f3." } },
+    { kind:"stop", text:"If the tablet is on and online but orders still don't come through, write down the time of the last order that did arrive. Don't log out of the delivery app or reinstall it \u2014 that can hide your order history. It needs help.",
+      text_es:"Si la tableta est\u00e1 encendida y en l\u00ednea pero los pedidos siguen sin llegar, anota la hora del \u00faltimo pedido que s\u00ed lleg\u00f3. No cierres sesi\u00f3n en la app de entrega ni la reinstales \u2014 eso puede esconder tu historial de pedidos. Necesita ayuda." }
+  ]},
+{ id:"drawerjam", group:"Register", icon:"\uD83D\uDD11", title:"Cash drawer stuck halfway / won't close",
+  title_es:"El caj\u00f3n de dinero est\u00e1 atascado a la mitad / no cierra",
+  blurb:"Drawer opens partway, jams, or won't shut.",
+  blurb_es:"El caj\u00f3n se abre a medias, se atasca o no cierra.",
+  steps:[
+    { kind:"fix", text:"Look for what's blocking it. Open the drawer as far as it goes and look inside \u2014 a folded bill, a coin, or a receipt can jam the rails. Take out anything stuck and try closing it gently.",
+      text_es:"Busca qu\u00e9 lo est\u00e1 bloqueando. Abre el caj\u00f3n hasta donde llegue y mira adentro \u2014 un billete doblado, una moneda o un recibo pueden atascar los rieles. Saca lo que est\u00e9 atascado e intenta cerrarlo con cuidado." },
+    { kind:"fix", text:"Check the rails. Wipe the metal rails on each side with a dry cloth \u2014 dust and crumbs make the drawer stick. Push the drawer in slowly and evenly, not at an angle.",
+      text_es:"Revisa los rieles. Limpia los rieles de metal de cada lado con un pa\u00f1o seco \u2014 el polvo y las migas hacen que el caj\u00f3n se atasque. Empuja el caj\u00f3n despacio y parejo, no de lado." },
+    { kind:"fix", text:"Try the key. Turn the manual key to the locked position, then back to open \u2014 sometimes the latch sticks halfway. Then push the drawer in firmly until it clicks shut.",
+      text_es:"Prueba con la llave. Gira la llave manual a la posici\u00f3n de cerrado y luego de vuelta a abierto \u2014 a veces el pestillo se queda a la mitad. Luego empuja el caj\u00f3n firmemente hasta que haga clic al cerrar." },
+    { kind:"stop", text:"If the drawer still won't close or the latch feels broken, stop. Don't force it shut \u2014 leave it open, keep the cash safe, and tell the owner.",
+      text_es:"Si el caj\u00f3n sigue sin cerrar o el pestillo se siente roto, para. No lo fuerces \u2014 d\u00e9jalo abierto, mant\u00e9n el dinero seguro y d\u00edselo al due\u00f1o." }
+  ]},
+{ id:"pairing", group:"Payments", icon:"\uD83D\uDCF1", title:"Card reader won't pair / connect (Bluetooth)",
+  title_es:"El lector de tarjetas no se conecta / no se empareja (Bluetooth)",
+  blurb:"Reader won't show up or keeps dropping off.",
+  blurb_es:"El lector no aparece o se desconecta siempre.",
+  steps:[
+    { kind:"fix", text:"Check the reader is charged. Put the reader on its charger for a few minutes \u2014 a low battery is the most common reason a wireless reader won't pair. Look for the charging light.",
+      text_es:"Revisa que el lector est\u00e9 cargado. Pon el lector en su cargador unos minutos \u2014 la bater\u00eda baja es la raz\u00f3n m\u00e1s com\u00fan de que un lector inal\u00e1mbrico no se empareje. Busca la luz de carga." },
+    { kind:"fix", text:"Check Bluetooth is on. On the register or tablet, open the settings and make sure Bluetooth is switched on. If it's already on, turn it off, wait 10 seconds, and turn it back on.",
+      text_es:"Revisa que el Bluetooth est\u00e9 encendido. En la caja o la tableta, abre la configuraci\u00f3n y aseg\u00farate de que el Bluetooth est\u00e9 activado. Si ya est\u00e1 activado, ap\u00e1galo, espera 10 segundos y vuelve a encenderlo." },
+    { kind:"fix", text:"Forget the reader and pair it again. In the Bluetooth list, find the reader, choose Forget, then put the reader into pairing mode \u2014 usually by holding its power button until the light blinks. Pick the reader from the list when it appears and wait for it to say connected.",
+      text_es:"Olvida el lector y empar\u00e9jalo de nuevo. En la lista de Bluetooth, busca el lector, elige Olvidar y luego pon el lector en modo de emparejamiento \u2014 normalmente manteniendo presionado su bot\u00f3n de encendido hasta que la luz parpadee. Elige el lector de la lista cuando aparezca y espera a que diga conectado." },
+    { kind:"stop", text:"If the reader never appears in the Bluetooth list, write down the reader's model name from the label on its back. Don't take the reader apart or try to open it \u2014 it needs hands-on help.",
+      text_es:"Si el lector nunca aparece en la lista de Bluetooth, anota el nombre del modelo de la etiqueta de atr\u00e1s. No desarmes el lector ni trates de abrirlo \u2014 necesita ayuda en persona." }
+  ]},
+{ id:"appupdate", group:"Register", icon:"\uD83D\uDCF2", title:"POS app frozen or won't open after an update",
+  title_es:"La app de POS se congela o no abre despu\u00e9s de una actualizaci\u00f3n",
+  blurb:"The app crashes, or won't load since it updated.",
+  blurb_es:"La app se cierra o no carga desde que se actualiz\u00f3.",
+  steps:[
+    { kind:"fix", text:"Wait 30 seconds and don't tap anything. An app right after an update can take a while to finish loading the first time.",
+      text_es:"Espera 30 segundos y no toques nada. Una app reci\u00e9n actualizada puede tardar en terminar de cargar la primera vez." },
+    { kind:"fix", text:"Close the app and open it again. Swipe the app away from the recent apps list, wait 10 seconds, then tap the app icon to open it. Don't delete the app \u2014 deleting it can lose saved sales.",
+      text_es:"Cierra la app y \u00e1brela de nuevo. Desliza la app fuera de la lista de apps recientes, espera 10 segundos y luego toca el \u00edcono para abrirla. No borres la app \u2014 borrarla puede perder ventas guardadas.",
+      v:{ "Toast":"Close the app and open it again. On Toast, swipe the Toast app away from the recent apps list, wait 10 seconds, then tap its icon to open it. Don't delete the app \u2014 deleting it can lose saved sales.",
+          "Square":"Close the app and open it again. On Square, swipe the Square Point of Sale app away from the recent apps list, wait 10 seconds, then tap its icon to open it. Don't delete the app \u2014 deleting it can lose saved sales.",
+          "Clover":"Close the app and open it again. On Clover, swipe the app away from the recent apps list, wait 10 seconds, then tap its icon to open it. Don't delete the app \u2014 deleting it can lose saved sales." },
+      v_es:{ "Toast":"Cierra la app y \u00e1brela de nuevo. En Toast, desliza la app de Toast fuera de la lista de apps recientes, espera 10 segundos y luego toca su \u00edcono. No borres la app \u2014 borrarla puede perder ventas guardadas.",
+          "Square":"Cierra la app y \u00e1brela de nuevo. En Square, desliza la app de Square Point of Sale fuera de la lista de apps recientes, espera 10 segundos y luego toca su \u00edcono. No borres la app \u2014 borrarla puede perder ventas guardadas.",
+          "Clover":"Cierra la app y \u00e1brela de nuevo. En Clover, desliza la app fuera de la lista de apps recientes, espera 10 segundos y luego toca su \u00edcono. No borres la app \u2014 borrarla puede perder ventas guardadas." } },
+    { kind:"fix", text:"Restart the register or tablet. Hold the power button until it goes dark, wait 10 seconds, and turn it back on. Give the app up to 2 minutes to load.",
+      text_es:"Reinicia la caja o la tableta. Mant\u00e9n presionado el bot\u00f3n de encendido hasta que se apague, espera 10 segundos y vuelve a encenderla. Dale a la app hasta 2 minutos para cargar." },
+    { kind:"stop", text:"If the app still won't open, write down the exact message on the screen and the version it updated to, if it shows one. Don't delete the app or change its settings to force it \u2014 it needs your POS vendor.",
+      text_es:"Si la app sigue sin abrir, anota el mensaje exacto de la pantalla y la versi\u00f3n a la que se actualiz\u00f3, si la muestra. No borres la app ni cambies su configuraci\u00f3n para forzarla \u2014 la necesita tu proveedor de POS." }
+  ]},
+{ id:"closeout", group:"End of day", icon:"\uD83E\uDDEE", title:"End-of-day totals don't match",
+  title_es:"Los totales del cierre del d\u00eda no coinciden",
+  blurb:"Cash or card totals don't line up with the register.",
+  blurb_es:"El efectivo o las tarjetas no cuadran con la caja.",
+  steps:[
+    { kind:"fix", text:"Count the cash again. Count the drawer a second time, slowly, and write down the number. If the second count matches the first, the count is right \u2014 the difference is somewhere else.",
+      text_es:"Cuenta el dinero otra vez. Cuenta el caj\u00f3n una segunda vez, despacio, y anota el n\u00famero. Si el segundo conteo coincide con el primero, el conteo est\u00e1 bien \u2014 la diferencia est\u00e1 en otro lado." },
+    { kind:"fix", text:"Check for a void or refund. Look at the day's voids and refunds in the register history \u2014 a voided sale or a refund can make the totals look wrong even when the money is right.",
+      text_es:"Busca una anulaci\u00f3n o un reembolso. Mira las anulaciones y los reembolsos del d\u00eda en el historial de la caja \u2014 una venta anulada o un reembolso pueden hacer que los totales se vean mal aunque el dinero est\u00e9 bien.",
+      v:{ "Toast":"Check for a void or refund. In Toast, look at the day's voids and refunds in the order history \u2014 a voided sale or a refund can make the totals look wrong even when the money is right.",
+          "Square":"Check for a void or refund. In Square, look at the day's voids and refunds in Transactions \u2014 a voided sale or a refund can make the totals look wrong even when the money is right.",
+          "Clover":"Check for a void or refund. In Clover, look at the day's voids and refunds in the Orders app \u2014 a voided sale or a refund can make the totals look wrong even when the money is right.",
+          "Aloha":"Check for a void or refund. In Aloha, look at the day's voids and refunds in the Functions menu \u2014 a voided sale or a refund can make the totals look wrong even when the money is right." },
+      v_es:{ "Toast":"Busca una anulaci\u00f3n o un reembolso. En Toast, mira las anulaciones y los reembolsos del d\u00eda en el historial de pedidos \u2014 una venta anulada o un reembolso pueden hacer que los totales se vean mal aunque el dinero est\u00e9 bien.",
+          "Square":"Busca una anulaci\u00f3n o un reembolso. En Square, mira las anulaciones y los reembolsos del d\u00eda en Transacciones \u2014 una venta anulada o un reembolso pueden hacer que los totales se vean mal aunque el dinero est\u00e9 bien.",
+          "Clover":"Busca una anulaci\u00f3n o un reembolso. En Clover, mira las anulaciones y los reembolsos del d\u00eda en la app de Pedidos \u2014 una venta anulada o un reembolso pueden hacer que los totales se vean mal aunque el dinero est\u00e9 bien.",
+          "Aloha":"Busca una anulaci\u00f3n o un reembolso. En Aloha, mira las anulaciones y los reembolsos del d\u00eda en el men\u00fa de Funciones \u2014 una venta anulada o un reembolso pueden hacer que los totales se vean mal aunque el dinero est\u00e9 bien." } },
+    { kind:"fix", text:"Compare the card total. The register's card total should match the card batch total. If they're different by one sale, find that sale in the history and write down its amount and time.",
+      text_es:"Compara el total de tarjetas. El total de tarjetas de la caja debe coincidir con el total del lote de tarjetas. Si difieren por una venta, busca esa venta en el historial y anota su monto y su hora." },
+    { kind:"stop", text:"If the totals still don't match, write down all three numbers \u2014 cash counted, register cash total, and card total \u2014 and tell the owner. Don't change the numbers to make them match.",
+      text_es:"Si los totales siguen sin coincidir, anota los tres n\u00fameros \u2014 el efectivo contado, el total de efectivo de la caja y el total de tarjetas \u2014 y d\u00edselo al due\u00f1o. No cambies los n\u00fameros para que coincidan." }
+  ]},
+{ id:"firstshift", group:"Register", icon:"\uD83D\uDC4B", title:"First shift with the register \u2014 15-minute walkthrough",
+  title_es:"Primer turno con la caja \u2014 recorrido de 15 minutos",
+  blurb:"New here? Start here.",
+  blurb_es:"\u00bfEres nuevo? Empieza aqu\u00ed.",
+  steps:[
+    { kind:"info", text:"Start your shift: sign in with your own code \u2014 never share codes or use someone else's. Count the cash drawer with the owner or the shift lead and write down the starting amount.",
+      text_es:"Empieza tu turno: inicia sesi\u00f3n con tu propio c\u00f3digo \u2014 nunca compartas c\u00f3digos ni uses el de otra persona. Cuenta el dinero del caj\u00f3n con el due\u00f1o o el encargado del turno y anota el monto inicial." },
+    { kind:"info", text:"Take a payment: ring up the items, tell the customer the total, and let them tap or insert their own card. You never need to handle a card number.",
+      text_es:"Cobra un pago: cobra los art\u00edculos, dile al cliente el total y deja que pase o inserte su propia tarjeta. Nunca necesitas manejar el n\u00famero de una tarjeta." },
+    { kind:"info", text:"Fix a small mistake: if you rang the wrong item before the customer pays, void that line from the sale. If they already paid, ask the owner \u2014 refunds go through the owner, not on your own.",
+      text_es:"Arregla un error peque\u00f1o: si cobraste el art\u00edculo equivocado antes de que el cliente pague, anula esa l\u00ednea de la venta. Si ya pag\u00f3, preg\u00fantale al due\u00f1o \u2014 los reembolsos pasan por el due\u00f1o, no por tu cuenta." },
+    { kind:"info", text:"Reprint a receipt: find the sale in the register history and choose Reprint. If the printer is empty, load a new roll first.",
+      text_es:"Reimprime un recibo: busca la venta en el historial de la caja y elige Reimprimir. Si la impresora est\u00e1 vac\u00eda, carga un rollo nuevo primero." },
+    { kind:"info", text:"When something looks wrong: if the screen freezes, a card keeps failing, or the printer jams, open this guide and tap the symptom. Don't guess. If the guide can't fix it, call the owner \u2014 and if it's after hours, the rescue line.",
+      text_es:"Cuando algo se ve mal: si la pantalla se congela, una tarjeta sigue fallando o la impresora se atasca, abre esta gu\u00eda y toca el s\u00edntoma. No adivines. Si la gu\u00eda no lo arregla, llama al due\u00f1o \u2014 y si es fuera de horario, a la l\u00ednea de rescate." }
   ]}
 ];
 
@@ -191,28 +537,129 @@ function nextState(flow, stepIdx, answer){
   return { view:"step", step: stepIdx + 1 };
 }
 
+/* Local storage helpers — safe when storage is missing or blocked. */
+function storeGet(k){
+  try { return (typeof localStorage !== "undefined") ? localStorage.getItem(k) : null; }
+  catch(e){ return null; }
+}
+function storeSet(k, v){
+  try { if (typeof localStorage !== "undefined") localStorage.setItem(k, v); }
+  catch(e){}
+}
+
+var LANG = storeGet("posrescue-lang") || "en";
+if (LANG !== "en" && LANG !== "es") LANG = "en";
+var currentVendor = storeGet("posrescue-vendor") || "Other";
+if (VENDORS.indexOf(currentVendor) === -1) currentVendor = "Other";
+var currentView = "view-home";
+
+function t(key){
+  var s = STRINGS[LANG] || STRINGS.en;
+  return (s[key] !== undefined) ? s[key] : STRINGS.en[key];
+}
+function flowTitle(f){ return (LANG === "es" && f.title_es) ? f.title_es : f.title; }
+function flowBlurb(f){ return (LANG === "es" && f.blurb_es) ? f.blurb_es : f.blurb; }
+function getStepText(step, vendor){
+  var v = vendor || currentVendor;
+  if (v && v !== "Other" && step.v && step.v[v]){
+    if (LANG === "es" && step.v_es && step.v_es[v]) return step.v_es[v];
+    return step.v[v];
+  }
+  if (LANG === "es" && step.text_es) return step.text_es;
+  return step.text;
+}
+
 function el(id){ return document.getElementById(id); }
 function show(id){
-  ["view-home","view-flow","view-fixed","view-escalate"].forEach(function(v){ el(v).hidden = (v !== id); });
+  currentView = id;
+  ["view-home","view-flow","view-fixed","view-escalate","view-checklist"].forEach(function(v){ el(v).hidden = (v !== id); });
   window.scrollTo(0, 0);
 }
 
 var currentFlow = null, currentStep = 0;
+var checklistDone = {};
+
+function loadChecklist(){
+  try {
+    var raw = storeGet("posrescue-checklist");
+    if (raw) checklistDone = JSON.parse(raw) || {};
+  } catch(e){ checklistDone = {}; }
+}
+function saveChecklist(){ storeSet("posrescue-checklist", JSON.stringify(checklistDone)); }
+
+function renderChrome(){
+  el("tagline").textContent = t("tagline");
+  el("safetyNote").innerHTML = "<b>" + t("safetyTitle") + "</b> " + t("safetyText");
+  el("foot1").textContent = t("footer1");
+  el("foot2").textContent = t("footer2");
+  el("foot3").textContent = t("footer3");
+  el("langBtn").textContent = t("langBtn");
+  el("backBtn").innerHTML = t("backAll");
+  el("fixedTitle").textContent = t("fixedTitle");
+  el("fixedSub").textContent = t("fixedSub");
+  el("fixedText").textContent = t("fixedText");
+  el("fixedBackBtn").textContent = t("backToAll");
+  el("escTitle").textContent = t("escTitle");
+  el("escBackBtn").textContent = t("backToAll");
+  el("checklistBackBtn").innerHTML = t("backAll");
+  el("checklistKicker").textContent = t("checklistKicker");
+  el("checklistTitle").textContent = t("checklistTitle");
+  el("checklistIntro").textContent = t("checklistIntro");
+  el("checklistResetBtn").textContent = t("checklistReset");
+  try { document.documentElement.lang = LANG; } catch(e){}
+}
 
 function renderHome(){
   var html = "";
+  html += '<div class="vendor"><div class="vendor-t">' + t("vendorTitle") + '</div><div class="vendor-row">';
+  VENDORS.forEach(function(v){
+    var label = (v === "Other") ? t("vendorOther") : v;
+    html += '<button class="vendor-btn' + (v === currentVendor ? ' sel' : '') + '" data-vendor="' + v + '">' + label + '</button>';
+  });
+  html += '</div></div>';
+  html += '<div class="note"><b>' + t("installTitle") + '.</b> ' + t("installText") + '</div>';
   GROUP_ORDER.forEach(function(g){
     var flows = FLOWS.filter(function(f){ return f.group === g; });
     if (!flows.length) return;
-    html += '<div class="group-h">' + g + '</div>';
+    html += '<div class="group-h">' + (GROUP_NAMES[LANG][g] || g) + '</div>';
     flows.forEach(function(f){
-      html += '<button class="symp" data-flow="' + f.id + '"><div class="t">' + f.icon + ' ' + f.title + '</div><div class="d">' + f.blurb + '</div></button>';
+      html += '<button class="symp" data-flow="' + f.id + '"><div class="t">' + f.icon + ' ' + flowTitle(f) + '</div><div class="d">' + flowBlurb(f) + '</div></button>';
     });
   });
+  html += '<button class="symp" data-checklist="1"><div class="t">\u2705 ' + t("checklistBtn") + '</div><div class="d">' + t("checklistIntro") + '</div></button>';
+  html += '<div class="note owner"><b>' + t("ownerTitle") + '.</b> ' + t("ownerText") + '</div>';
   el("homeGroups").innerHTML = html;
   var btns = document.querySelectorAll(".symp");
   for (var i = 0; i < btns.length; i++){
-    btns[i].onclick = function(){ openFlow(this.getAttribute("data-flow")); };
+    btns[i].onclick = function(){
+      if (this.getAttribute("data-checklist")){ renderChecklist(); show("view-checklist"); }
+      else { openFlow(this.getAttribute("data-flow")); }
+    };
+  }
+  var vbtns = document.querySelectorAll(".vendor-btn");
+  for (var j = 0; j < vbtns.length; j++){
+    vbtns[j].onclick = function(){ setVendor(this.getAttribute("data-vendor")); };
+  }
+}
+
+function renderChecklist(){
+  var done = 0;
+  var html = "";
+  CHECKLIST.forEach(function(item){
+    var txt = (LANG === "es" && item.text_es) ? item.text_es : item.text;
+    var checked = !!checklistDone[item.id];
+    if (checked) done++;
+    html += '<label class="check"><input type="checkbox" data-item="' + item.id + '"' + (checked ? ' checked' : '') + '> <span>' + txt + '</span></label>';
+  });
+  html += '<p class="checkcount">' + done + ' ' + t("checklistDone") + '</p>';
+  el("checklistBody").innerHTML = html;
+  var boxes = document.querySelectorAll("#checklistBody input[type=checkbox]");
+  for (var i = 0; i < boxes.length; i++){
+    boxes[i].onchange = function(){
+      checklistDone[this.getAttribute("data-item")] = !!this.checked;
+      saveChecklist();
+      renderChecklist();
+    };
   }
 }
 
@@ -225,17 +672,17 @@ function openFlow(id){
 
 function renderStep(){
   var step = currentFlow.steps[currentStep];
-  el("stepNum").textContent = "Step " + (currentStep + 1) + " of " + currentFlow.steps.length;
-  el("flowTitle").textContent = currentFlow.title;
-  el("stepText").textContent = step.text;
+  el("stepNum").textContent = t("stepOf").replace("{n}", String(currentStep + 1)).replace("{m}", String(currentFlow.steps.length));
+  el("flowTitle").textContent = flowTitle(currentFlow);
+  el("stepText").textContent = getStepText(step, currentVendor);
   var row = el("stepBtns");
   row.innerHTML = "";
   if (step.kind === "fix"){
     var yes = document.createElement("button");
-    yes.className = "btn yes"; yes.textContent = "Yes — fixed";
+    yes.className = "btn yes"; yes.textContent = t("yesFixed");
     yes.onclick = function(){ show("view-fixed"); };
     var no = document.createElement("button");
-    no.className = "btn no"; no.textContent = "No — still broken";
+    no.className = "btn no"; no.textContent = t("noBroken");
     no.onclick = function(){
       var next = nextState(currentFlow, currentStep, "no");
       if (next.view === "escalate"){ renderEscalate(); show("view-escalate"); }
@@ -245,7 +692,7 @@ function renderStep(){
   } else {
     var got = document.createElement("button");
     got.className = "btn primary single";
-    got.textContent = (step.kind === "stop") ? "Understood" : "Got it — next";
+    got.textContent = (step.kind === "stop") ? t("understood") : t("gotNext");
     got.onclick = function(){
       var next = nextState(currentFlow, currentStep, "got");
       if (next.view === "escalate"){ renderEscalate(); show("view-escalate"); }
@@ -257,23 +704,50 @@ function renderStep(){
 }
 
 function renderEscalate(){
-  var html = "<p>Before you call anyone, write down: the exact words on the screen, what time it happened, and which register it is.</p>";
+  var html = "<p>" + t("escWrite") + "</p>";
   if (CONFIG.rescuePhone){
-    html += '<p><a class="btn primary" href="tel:' + CONFIG.rescuePhone + '">Call the rescue line</a></p>' +
-      '<p><a class="btn ghost" href="sms:' + CONFIG.rescuePhone + '">Text the rescue line</a></p>';
+    html += '<p><a class="btn primary" href="tel:' + CONFIG.rescuePhone + '">' + t("escCall") + '</a></p>' +
+      '<p><a class="btn ghost" href="sms:' + CONFIG.rescuePhone + '">' + t("escText") + '</a></p>';
+    html += "<p>" + t("escPromise") + "</p>";
   } else {
-    html += "<p>The rescue line number is set when the service launches. Leave a callback note for the owner with the register, the time, and the exact error message.</p>";
+    html += "<p>" + t("escFallback") + "</p>";
   }
-  html += "<p>If your POS vendor's support line is open, call them too and read them the exact error message — they can often fix it remotely.</p>";
+  html += "<p>" + t("escVendor") + "</p>";
   el("escalateBody").innerHTML = html;
+}
+
+function rerenderCurrent(){
+  if (currentView === "view-flow" && currentFlow){ renderStep(); return; }
+  if (currentView === "view-escalate"){ renderEscalate(); return; }
+  if (currentView === "view-checklist"){ renderChecklist(); return; }
+  renderHome();
+}
+
+function setLang(lang){
+  if (lang !== "en" && lang !== "es") return;
+  LANG = lang;
+  storeSet("posrescue-lang", lang);
+  renderChrome();
+  rerenderCurrent();
+}
+function setVendor(v){
+  if (VENDORS.indexOf(v) === -1) return;
+  currentVendor = v;
+  storeSet("posrescue-vendor", v);
+  if (currentFlow) renderStep(); else renderHome();
 }
 
 el("backBtn").onclick = function(){ show("view-home"); };
 el("fixedBackBtn").onclick = function(){ show("view-home"); };
 el("escBackBtn").onclick = function(){ show("view-home"); };
+el("checklistBackBtn").onclick = function(){ show("view-home"); };
+el("checklistResetBtn").onclick = function(){ checklistDone = {}; saveChecklist(); renderChecklist(); };
+el("langBtn").onclick = function(){ setLang(LANG === "en" ? "es" : "en"); };
 
+loadChecklist();
+renderChrome();
 renderHome();
-if (typeof window !== "undefined"){ window.POSRESCUE = { FLOWS: FLOWS, CONFIG: CONFIG, nextState: nextState, GROUP_ORDER: GROUP_ORDER }; }
+if (typeof window !== "undefined"){ window.POSRESCUE = { FLOWS: FLOWS, CONFIG: CONFIG, nextState: nextState, GROUP_ORDER: GROUP_ORDER, GROUP_NAMES: GROUP_NAMES, VENDORS: VENDORS, CHECKLIST: CHECKLIST, STRINGS: STRINGS, setLang: setLang, getLang: function(){ return LANG; }, setVendor: setVendor, getVendor: function(){ return currentVendor; }, getStepText: getStepText, flowTitle: flowTitle, flowBlurb: flowBlurb, t: t, renderHome: renderHome, renderChecklist: renderChecklist, renderChrome: renderChrome, renderEscalate: renderEscalate }; }
 </script>
 </body>
 </html>
