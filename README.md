@@ -29,7 +29,7 @@ It works on a clerk's phone during a rush.
 ## Setup
 
 `CONFIG.rescuePhone` at the top of the script is the Google Voice / business
-number shown on the escalation card — currently 440-770-8561. The owner's
+number shown on the escalation card — currently 216-770-8561. The owner's
 personal number is never in this file. Tests (`node pos-rescue-test.js`,
 local only, never pushed) verify all 17 flows, the vendor picker, the
 Spanish toggle, the checklist, the symptom search, the incident log and
